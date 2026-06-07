@@ -2,7 +2,7 @@
 # Backend lives in api/ (Go), frontend in web/ (React+TS, added in a later slice).
 
 .PHONY: help build run-onboard run-shore migrate-up migrate-down openapi gen-ts \
-        onboard-up onboard-down shore-up shore-down test tidy
+        onboard-up onboard-down shore-up shore-down seed seed-docker seed-docker-shore test tidy
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?#' $(MAKEFILE_LIST) | sed 's/:.*#/\t/' | sort
@@ -33,6 +33,9 @@ seed: # load Norwegian Luna demo data (use RESET=1 to wipe first)
 
 seed-docker: # reseed inside the running onboard api container
 	docker compose -f deploy/docker-compose.onboard.yml exec -T api /server seed --reset
+
+seed-docker-shore: # reseed inside the running shore api container
+	docker compose -f deploy/docker-compose.shore.yml exec -T api /server seed --reset
 
 openapi: # emit api/openapi/openapi.json (the 3.1 spec, deliverable 2)
 	cd api && go run ./cmd/server dump-openapi

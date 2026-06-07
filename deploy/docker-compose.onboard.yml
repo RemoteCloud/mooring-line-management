@@ -1,5 +1,7 @@
 # Onboard deployment: one vessel. API + its own Postgres + MinIO, self-contained.
 # Runs with no shore connectivity. Set VESSEL_ID to the vessel this box serves.
+# Distinct project name so the onboard stack coexists with shore on one host.
+name: mooring-onboard
 services:
   db:
     image: postgres:18

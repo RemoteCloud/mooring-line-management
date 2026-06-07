@@ -1,5 +1,8 @@
 # Shore deployment: whole fleet. API + its own Postgres + MinIO. Fleet-wide scope.
 # Onboard deployments reconcile to this via async outbox sync (not live requests).
+# Distinct project name so the shore stack coexists with onboard on one host
+# (both files live in deploy/, which would otherwise share the default project).
+name: mooring-shore
 services:
   db:
     image: postgres:18

@@ -184,7 +184,9 @@ func (s *Store) ListInspections(ctx context.Context, lineID string) ([]Inspectio
 	return out, rows.Err()
 }
 
-// Logbook returns a vessel's inspections (newest first) joined with line name and serial.
+// Logbook returns inspections (newest first) joined with line name and serial.
+// An empty vesselID is fleet-wide (shore with no vessel filter); onboard always
+// passes its configured vessel.
 func (s *Store) Logbook(ctx context.Context, vesselID string, limit int) ([]InspLogbookEntry, error) {
 	if limit <= 0 {
 		limit = 100
@@ -195,9 +197,9 @@ SELECT i.id, i.line_id, i.vessel_id, i.inspected_at, COALESCE(i.inspected_by,'')
        ml.name, ml.serial_number
 FROM inspection i
 JOIN mooring_line ml ON ml.id = i.line_id
-WHERE i.vessel_id = $1
+WHERE ($1::uuid IS NULL OR i.vessel_id = $1::uuid)
 ORDER BY i.inspected_at DESC
-LIMIT $2`, vesselID, limit)
+LIMIT $2`, nullStr(vesselID), limit)
 	if err != nil {
 		return nil, err
 	}
@@ -217,9 +219,11 @@ LIMIT $2`, vesselID, limit)
 // ConditionReport returns, for each top-level line of a vessel, its latest inspection
 // condition (falling back to the line's current_condition_status), for CSV/PDF export.
 func (s *Store) ConditionReport(ctx context.Context, vesselID string) (string, []InspReportRow, error) {
-	var vesselName string
-	if err := s.Pool.QueryRow(ctx, `SELECT name FROM vessel WHERE id=$1`, vesselID).Scan(&vesselName); err != nil {
-		return "", nil, err
+	vesselName := "Fleet"
+	if vesselID != "" {
+		if err := s.Pool.QueryRow(ctx, `SELECT name FROM vessel WHERE id=$1`, vesselID).Scan(&vesselName); err != nil {
+			return "", nil, err
+		}
 	}
 
 	rows, err := s.Pool.Query(ctx, `
@@ -234,8 +238,8 @@ LEFT JOIN LATERAL (
     ORDER BY i.inspected_at DESC
     LIMIT 1
 ) latest ON true
-WHERE ml.vessel_id = $1 AND ml.parent_line_id IS NULL
-ORDER BY ml.name`, vesselID)
+WHERE ($1::uuid IS NULL OR ml.vessel_id = $1::uuid) AND ml.parent_line_id IS NULL
+ORDER BY ml.name`, nullStr(vesselID))
 	if err != nil {
 		return vesselName, nil, err
 	}

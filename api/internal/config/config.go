@@ -24,12 +24,15 @@ type Config struct {
 	DatabaseURL string
 
 	// Object storage (S3-compatible) for certificates, manuals, condition photos.
-	S3Endpoint  string
-	S3Region    string
-	S3Bucket    string
-	S3AccessKey string
-	S3SecretKey string
-	S3UseSSL    bool
+	S3Endpoint string
+	// S3PublicEndpoint is the browser-reachable endpoint used to sign GET URLs.
+	// Defaults to S3Endpoint; differs in Docker (internal host vs host-mapped port).
+	S3PublicEndpoint string
+	S3Region         string
+	S3Bucket         string
+	S3AccessKey      string
+	S3SecretKey      string
+	S3UseSSL         bool
 
 	JWTSecret string
 
@@ -41,18 +44,19 @@ type Config struct {
 // Load reads configuration from the environment and validates invariants.
 func Load() (*Config, error) {
 	c := &Config{
-		Scope:       Scope(getenv("SCOPE", string(ScopeShore))),
-		VesselID:    os.Getenv("VESSEL_ID"),
-		HTTPAddr:    getenv("HTTP_ADDR", ":8080"),
-		DatabaseURL: getenv("DATABASE_URL", "postgres://mooring:mooring@localhost:5432/mooring?sslmode=disable"),
-		S3Endpoint:  getenv("S3_ENDPOINT", "http://localhost:9000"),
-		S3Region:    getenv("S3_REGION", "us-east-1"),
-		S3Bucket:    getenv("S3_BUCKET", "mooring"),
-		S3AccessKey: getenv("S3_ACCESS_KEY", "minioadmin"),
-		S3SecretKey: getenv("S3_SECRET_KEY", "minioadmin"),
-		S3UseSSL:    getenv("S3_USE_SSL", "false") == "true",
-		JWTSecret:   getenv("JWT_SECRET", "dev-insecure-change-me"),
-		AutoMigrate: getenv("AUTO_MIGRATE", "true") != "false",
+		Scope:            Scope(getenv("SCOPE", string(ScopeShore))),
+		VesselID:         os.Getenv("VESSEL_ID"),
+		HTTPAddr:         getenv("HTTP_ADDR", ":8080"),
+		DatabaseURL:      getenv("DATABASE_URL", "postgres://mooring:mooring@localhost:5432/mooring?sslmode=disable"),
+		S3Endpoint:       getenv("S3_ENDPOINT", "http://localhost:9000"),
+		S3PublicEndpoint: getenv("S3_PUBLIC_ENDPOINT", ""),
+		S3Region:         getenv("S3_REGION", "us-east-1"),
+		S3Bucket:         getenv("S3_BUCKET", "mooring"),
+		S3AccessKey:      getenv("S3_ACCESS_KEY", "minioadmin"),
+		S3SecretKey:      getenv("S3_SECRET_KEY", "minioadmin"),
+		S3UseSSL:         getenv("S3_USE_SSL", "false") == "true",
+		JWTSecret:        getenv("JWT_SECRET", "dev-insecure-change-me"),
+		AutoMigrate:      getenv("AUTO_MIGRATE", "true") != "false",
 	}
 
 	switch c.Scope {

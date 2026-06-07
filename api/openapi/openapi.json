@@ -203,6 +203,197 @@
         },
         "type": "object"
       },
+      "File-add-certRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/File-add-certRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "file_base64": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "certificate",
+              "manual",
+              "guide"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_base64",
+          "file_name"
+        ],
+        "type": "object"
+      },
+      "File-add-photoRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/File-add-photoRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "condition_at_capture": {
+            "enum": [
+              "Good",
+              "Monitor",
+              "Action"
+            ],
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "file_base64": {
+            "type": "string"
+          },
+          "inspection_id": {
+            "type": "string"
+          },
+          "side": {
+            "enum": [
+              "A",
+              "B",
+              "n/a"
+            ],
+            "type": "string"
+          },
+          "taken_at": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_base64"
+        ],
+        "type": "object"
+      },
+      "FileDoc": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/FileDoc.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "file_ref": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "line_id": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          },
+          "vessel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "file_ref",
+          "file_name",
+          "size_bytes",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "FilePhoto": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/FilePhoto.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "condition_at_capture": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "file_ref": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inspection_id": {
+            "type": "string"
+          },
+          "line_id": {
+            "type": "string"
+          },
+          "side": {
+            "type": "string"
+          },
+          "taken_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "line_id",
+          "file_ref",
+          "created_at"
+        ],
+        "type": "object"
+      },
       "HealthOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -245,6 +436,222 @@
           "status",
           "scope",
           "db"
+        ],
+        "type": "object"
+      },
+      "Insp-ingestResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Insp-ingestResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "created": {
+            "type": "boolean"
+          },
+          "inspection": {
+            "$ref": "#/components/schemas/Inspection"
+          }
+        },
+        "required": [
+          "inspection",
+          "created"
+        ],
+        "type": "object"
+      },
+      "InspIngestBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/InspIngestBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "condition_status": {
+            "enum": [
+              "Good",
+              "Monitor",
+              "Action"
+            ],
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "inspected_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inspected_by": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "serial_number": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "serial_number",
+          "condition_status"
+        ],
+        "type": "object"
+      },
+      "InspLogBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/InspLogBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "condition_status": {
+            "enum": [
+              "Good",
+              "Monitor",
+              "Action"
+            ],
+            "type": "string"
+          },
+          "inspected_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inspected_by": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "condition_status"
+        ],
+        "type": "object"
+      },
+      "InspLogbookEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "condition_status": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inspected_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inspected_by": {
+            "type": "string"
+          },
+          "line_id": {
+            "type": "string"
+          },
+          "line_name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "serial_number": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "vessel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "line_name",
+          "serial_number",
+          "id",
+          "line_id",
+          "vessel_id",
+          "inspected_at",
+          "source",
+          "condition_status",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "Inspection": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Inspection.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "condition_status": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inspected_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inspected_by": {
+            "type": "string"
+          },
+          "line_id": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "vessel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "line_id",
+          "vessel_id",
+          "inspected_at",
+          "source",
+          "condition_status",
+          "created_at"
         ],
         "type": "object"
       },
@@ -682,6 +1089,164 @@
         },
         "type": "object"
       },
+      "OverAttentionItem": {
+        "additionalProperties": false,
+        "properties": {
+          "condition_status": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "location_label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "serial_number": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "serial_number",
+          "condition_status",
+          "location_label"
+        ],
+        "type": "object"
+      },
+      "OverRecentInspection": {
+        "additionalProperties": false,
+        "properties": {
+          "condition_status": {
+            "type": "string"
+          },
+          "inspected_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "line_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "line_name",
+          "condition_status",
+          "inspected_at"
+        ],
+        "type": "object"
+      },
+      "OverTrendPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inspections": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "month": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "inspections",
+          "action"
+        ],
+        "type": "object"
+      },
+      "Overview": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Overview.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "action": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "active_lines": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "attention": {
+            "items": {
+              "$ref": "#/components/schemas/OverAttentionItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "avg_install_age_days": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "good": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "inspections_due": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "monitor": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "needing_attention": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "recent_inspections": {
+            "items": {
+              "$ref": "#/components/schemas/OverRecentInspection"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "spares": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "trend": {
+            "items": {
+              "$ref": "#/components/schemas/OverTrendPoint"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "active_lines",
+          "spares",
+          "good",
+          "monitor",
+          "action",
+          "needing_attention",
+          "inspections_due",
+          "avg_install_age_days",
+          "attention",
+          "recent_inspections",
+          "trend"
+        ],
+        "type": "object"
+      },
       "Product": {
         "additionalProperties": false,
         "properties": {
@@ -847,6 +1412,24 @@
           "x",
           "y"
         ],
+        "type": "object"
+      },
+      "TurnBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TurnBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "Vessel": {
@@ -1023,6 +1606,103 @@
         ]
       }
     },
+    "/inspections/ingest": {
+      "post": {
+        "operationId": "insp-ingest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InspIngestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Insp-ingestResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Ingest an inspection from the third-party API (idempotent by external_id)",
+        "tags": [
+          "inspections"
+        ]
+      }
+    },
+    "/inspections/logbook": {
+      "get": {
+        "operationId": "insp-logbook",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "vessel_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InspLogbookEntry"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Chronological inspection logbook for a vessel",
+        "tags": [
+          "inspections"
+        ]
+      }
+    },
     "/line-types": {
       "get": {
         "operationId": "list-line-types",
@@ -1102,6 +1782,58 @@
         ]
       }
     },
+    "/lines/{id}/certificate": {
+      "post": {
+        "operationId": "file-add-cert",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/File-add-certRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileDoc"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Upload a certificate, manual or guide for a line",
+        "tags": [
+          "files"
+        ]
+      }
+    },
     "/lines/{id}/components": {
       "post": {
         "operationId": "add-component",
@@ -1156,7 +1888,7 @@
     },
     "/lines/{id}/files": {
       "get": {
-        "operationId": "list-line-files",
+        "operationId": "file-list",
         "parameters": [
           {
             "in": "path",
@@ -1173,7 +1905,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {},
+                  "items": {
+                    "$ref": "#/components/schemas/FileDoc"
+                  },
                   "type": [
                     "array",
                     "null"
@@ -1194,15 +1928,15 @@
             "description": "Error"
           }
         },
-        "summary": "List files for a line (stub until files slice)",
+        "summary": "List documents (certificates/manuals/guides) for a line",
         "tags": [
-          "lines"
+          "files"
         ]
       }
     },
     "/lines/{id}/inspections": {
       "get": {
-        "operationId": "list-line-inspections",
+        "operationId": "insp-list",
         "parameters": [
           {
             "in": "path",
@@ -1219,7 +1953,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {},
+                  "items": {
+                    "$ref": "#/components/schemas/Inspection"
+                  },
                   "type": [
                     "array",
                     "null"
@@ -1240,9 +1976,59 @@
             "description": "Error"
           }
         },
-        "summary": "List inspections for a line (stub until inspections slice)",
+        "summary": "List inspections for a line",
         "tags": [
-          "lines"
+          "inspections"
+        ]
+      },
+      "post": {
+        "operationId": "insp-log",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InspLogBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inspection"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Log a manual inspection for a line",
+        "tags": [
+          "inspections"
         ]
       }
     },
@@ -1295,6 +2081,156 @@
         "summary": "Move a line to a drum or to storage",
         "tags": [
           "lines"
+        ]
+      }
+    },
+    "/lines/{id}/photos": {
+      "get": {
+        "operationId": "file-list-photos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FilePhoto"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List condition photos for a line",
+        "tags": [
+          "files"
+        ]
+      },
+      "post": {
+        "operationId": "file-add-photo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/File-add-photoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilePhoto"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Upload a condition photo for a line",
+        "tags": [
+          "files"
+        ]
+      }
+    },
+    "/lines/{id}/turn": {
+      "post": {
+        "operationId": "turn-line",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TurnBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Line"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Turn a line to its other side",
+        "tags": [
+          "turning"
         ]
       }
     },
@@ -1371,6 +2307,41 @@
         "summary": "Create maker",
         "tags": [
           "catalogue"
+        ]
+      }
+    },
+    "/photos/{id}": {
+      "delete": {
+        "operationId": "file-del-photo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete a condition photo",
+        "tags": [
+          "files"
         ]
       }
     },
@@ -1507,6 +2478,72 @@
         "summary": "Get product",
         "tags": [
           "catalogue"
+        ]
+      }
+    },
+    "/reports/condition": {
+      "get": {
+        "operationId": "insp-report",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "vessel_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "enum": [
+                "pdf",
+                "csv"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Download a condition report (CSV or PDF)",
+        "tags": [
+          "inspections"
         ]
       }
     },
@@ -1868,6 +2905,48 @@
         "summary": "Register a mooring line (supports lifecycle_status=ordered)",
         "tags": [
           "lines"
+        ]
+      }
+    },
+    "/vessels/{vessel_id}/overview": {
+      "get": {
+        "operationId": "over-get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vessel_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Vessel dashboard overview (KPIs, condition, attention, trend)",
+        "tags": [
+          "dashboard"
         ]
       }
     }

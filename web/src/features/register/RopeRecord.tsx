@@ -3,6 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { useLine, type Line } from "../../api/hooks";
 import { StatusDot, CopyButton, LifecycleBadge } from "../../components/ui";
 import { ageLabel, dateLabel } from "../../lib/format";
+import { TurnButton } from "../turning/TurnButton";
+import { InspectionsTab } from "../inspections/InspectionsTab";
+import { FilesTab } from "../files/FilesTab";
 
 const TABS = ["Overview", "Side tracking", "Inspections", "Files & photos"] as const;
 type Tab = (typeof TABS)[number];
@@ -48,8 +51,8 @@ export function RopeRecord() {
 
       {tab === "Overview" && <Overview l={l} />}
       {tab === "Side tracking" && <SideTracking l={l} />}
-      {tab === "Inspections" && <Empty what="inspections" note="Inspections arrive via the third-party API and manual logging — coming with the inspections slice." />}
-      {tab === "Files & photos" && <Empty what="files" note="Condition photos, certificates and manuals — coming with the files slice." />}
+      {tab === "Inspections" && <InspectionsTab lineId={l.id} />}
+      {tab === "Files & photos" && <FilesTab lineId={l.id} />}
     </>
   );
 }
@@ -117,11 +120,9 @@ function SideTracking({ l }: { l: Line }) {
         {card("A", l.side_a_age_days, l.side_a_change_date, l.side_a_condition)}
         {card("B", l.side_b_age_days, l.side_b_change_date, l.side_b_condition)}
       </div>
-      <p className="muted" style={{ marginTop: 14 }}>The Turn action arrives with the turning slice.</p>
+      <div style={{ marginTop: 16, maxWidth: 640 }}>
+        <TurnButton line={l} />
+      </div>
     </>
   );
-}
-
-function Empty({ what, note }: { what: string; note: string }) {
-  return <div className="stub"><h3>No {what} yet</h3>{note}</div>;
 }

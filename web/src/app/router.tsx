@@ -5,6 +5,9 @@ import { Stub } from "../features/Stub";
 import { RegisterPage } from "../features/register/RegisterPage";
 import { RopeRecord } from "../features/register/RopeRecord";
 import { DeckPage } from "../features/deck/DeckPage";
+import { InspectionsPage } from "../features/inspections/InspectionsPage";
+import { LogbookPage } from "../features/inspections/LogbookPage";
+import { CataloguePage } from "../features/catalogue/CataloguePage";
 import { isShore } from "../config";
 
 export const router = createBrowserRouter([
@@ -16,25 +19,15 @@ export const router = createBrowserRouter([
       { path: "deck", element: <DeckPage /> },
       { path: "register", element: <RegisterPage /> },
       { path: "lines/:id", element: <RopeRecord /> },
-      {
-        path: "inspections",
-        element: <Stub title="Inspections" sub="Log inspections and view condition reports." needs="GET /lines/{id}/inspections" />,
-      },
-      {
-        path: "logbook",
-        element: <Stub title="Log book" sub="Chronological inspection log across all lines." needs="GET /inspections/logbook" />,
-      },
+      { path: "inspections", element: <InspectionsPage /> },
+      { path: "logbook", element: <LogbookPage /> },
       {
         path: "files",
-        element: <Stub title="Files & certificates" sub="Condition photos, certificates and manuals." needs="GET /lines/{id}/files" />,
+        element: <Stub title="Files & certificates" sub="Condition photos, certificates and manuals live on each rope record's Files & photos tab." needs="open a line → Files & photos" />,
       },
       {
         path: "catalogue",
-        element: isShore() ? (
-          <Stub title="Catalogue" sub="Makers, line types and products (master data)." needs="GET /products" />
-        ) : (
-          <Navigate to="/" replace />
-        ),
+        element: isShore() ? <CataloguePage /> : <Navigate to="/" replace />,
       },
       { path: "*", element: <Navigate to="/" replace /> },
     ],

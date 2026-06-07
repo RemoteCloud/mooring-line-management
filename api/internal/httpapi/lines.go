@@ -111,25 +111,6 @@ func registerLines(api huma.API, s *Server) {
 		}
 		return &struct{ Body store.Line }{Body: l}, nil
 	})
-
-	// Stub endpoints so the rope record's Inspections/Files tabs work before their slices.
-	huma.Register(api, huma.Operation{
-		OperationID: "list-line-inspections", Method: http.MethodGet, Path: "/lines/{id}/inspections",
-		Summary: "List inspections for a line (stub until inspections slice)", Tags: tag,
-	}, func(ctx context.Context, _ *struct {
-		ID string `path:"id" format:"uuid"`
-	}) (*struct{ Body []any }, error) {
-		return &struct{ Body []any }{Body: []any{}}, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		OperationID: "list-line-files", Method: http.MethodGet, Path: "/lines/{id}/files",
-		Summary: "List files for a line (stub until files slice)", Tags: tag,
-	}, func(ctx context.Context, _ *struct {
-		ID string `path:"id" format:"uuid"`
-	}) (*struct{ Body []any }, error) {
-		return &struct{ Body []any }{Body: []any{}}, nil
-	})
 }
 
 type lineBody struct {

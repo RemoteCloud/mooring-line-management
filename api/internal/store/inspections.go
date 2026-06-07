@@ -1,0 +1,259 @@
+package store
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+)
+
+// Inspection is one logged or ingested condition assessment of a mooring line.
+type Inspection struct {
+	ID              string    `json:"id"`
+	LineID          string    `json:"line_id"`
+	VesselID        string    `json:"vessel_id"`
+	InspectedAt     time.Time `json:"inspected_at"`
+	InspectedBy     string    `json:"inspected_by,omitempty"`
+	Source          string    `json:"source"`
+	ExternalID      string    `json:"external_id,omitempty"`
+	ConditionStatus string    `json:"condition_status"`
+	Notes           string    `json:"notes,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+// InspLogbookEntry is an inspection enriched with its line's name and serial,
+// for the chronological logbook view across a vessel.
+type InspLogbookEntry struct {
+	Inspection
+	LineName     string `json:"line_name"`
+	SerialNumber string `json:"serial_number"`
+}
+
+// InspInput carries the manual-logging fields. InspectedAt is optional (defaults to now).
+type InspInput struct {
+	ConditionStatus string
+	InspectedBy     string
+	Notes           string
+	InspectedAt     *time.Time
+}
+
+// InspReportRow is one line's latest condition for the condition report.
+type InspReportRow struct {
+	LineName        string
+	SerialNumber    string
+	ConditionStatus string
+	LastInspected   string
+}
+
+const inspSelect = `
+SELECT id, line_id, vessel_id, inspected_at, COALESCE(inspected_by,''), source,
+       COALESCE(external_id,''), condition_status, COALESCE(notes,''), created_at
+FROM inspection`
+
+func inspScan(row pgx.Row) (Inspection, error) {
+	var i Inspection
+	err := row.Scan(&i.ID, &i.LineID, &i.VesselID, &i.InspectedAt, &i.InspectedBy, &i.Source,
+		&i.ExternalID, &i.ConditionStatus, &i.Notes, &i.CreatedAt)
+	return i, err
+}
+
+// LogInspection records a manual inspection, updates the line's current condition,
+// and emits an outbox event — all in one transaction.
+func (s *Store) LogInspection(ctx context.Context, lineID string, in InspInput) (Inspection, error) {
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return Inspection{}, err
+	}
+	defer tx.Rollback(ctx)
+
+	var vesselID string
+	if err := tx.QueryRow(ctx, `SELECT vessel_id FROM mooring_line WHERE id=$1`, lineID).Scan(&vesselID); err != nil {
+		return Inspection{}, err
+	}
+
+	id := newID()
+	_, err = tx.Exec(ctx, `
+INSERT INTO inspection (id, line_id, vessel_id, inspected_at, inspected_by, source, condition_status, notes)
+VALUES ($1,$2,$3,COALESCE($4, now()),$5,'manual',$6,$7)`,
+		id, lineID, vesselID, in.InspectedAt, nullStr(in.InspectedBy), in.ConditionStatus, nullStr(in.Notes))
+	if err != nil {
+		return Inspection{}, mapPgError(err)
+	}
+
+	if _, err := tx.Exec(ctx, `UPDATE mooring_line SET current_condition_status=$2 WHERE id=$1`,
+		lineID, in.ConditionStatus); err != nil {
+		return Inspection{}, err
+	}
+
+	if err := writeOutbox(ctx, tx, vesselID, "inspection", id, "inspection.logged",
+		map[string]any{"id": id, "line_id": lineID, "condition_status": in.ConditionStatus}); err != nil {
+		return Inspection{}, err
+	}
+
+	insp, err := inspScan(tx.QueryRow(ctx, inspSelect+` WHERE id=$1`, id))
+	if err != nil {
+		return Inspection{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Inspection{}, err
+	}
+	return insp, nil
+}
+
+// IngestInspection idempotently records an inspection arriving from the third-party API,
+// keyed by external_id. Returns created=false (and the existing row) on a duplicate.
+// A line that cannot be resolved by serial number surfaces pgx.ErrNoRows for a 404.
+func (s *Store) IngestInspection(ctx context.Context, serial, externalID, conditionStatus, inspectedBy, notes string, inspectedAt *time.Time) (Inspection, bool, error) {
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return Inspection{}, false, err
+	}
+	defer tx.Rollback(ctx)
+
+	var lineID, vesselID string
+	err = tx.QueryRow(ctx, `SELECT id, vessel_id FROM mooring_line WHERE serial_number=$1`, serial).
+		Scan(&lineID, &vesselID)
+	if err != nil {
+		// pgx.ErrNoRows propagates so the handler returns 404.
+		return Inspection{}, false, err
+	}
+
+	id := newID()
+	var newRowID string
+	err = tx.QueryRow(ctx, `
+INSERT INTO inspection (id, line_id, vessel_id, inspected_at, inspected_by, source, external_id, condition_status, notes)
+VALUES ($1,$2,$3,COALESCE($4, now()),$5,'api',$6,$7,$8)
+ON CONFLICT (external_id) WHERE external_id IS NOT NULL DO NOTHING
+RETURNING id`,
+		id, lineID, vesselID, inspectedAt, nullStr(inspectedBy), nullStr(externalID), conditionStatus, nullStr(notes)).
+		Scan(&newRowID)
+
+	created := false
+	switch {
+	case err == nil:
+		created = true
+	case errors.Is(err, pgx.ErrNoRows):
+		// Duplicate external_id — ON CONFLICT DO NOTHING returned no row.
+		created = false
+	default:
+		return Inspection{}, false, mapPgError(err)
+	}
+
+	if created {
+		if _, err := tx.Exec(ctx, `UPDATE mooring_line SET current_condition_status=$2 WHERE id=$1`,
+			lineID, conditionStatus); err != nil {
+			return Inspection{}, false, err
+		}
+		if err := writeOutbox(ctx, tx, vesselID, "inspection", newRowID, "inspection.logged",
+			map[string]any{"id": newRowID, "line_id": lineID, "condition_status": conditionStatus, "source": "api"}); err != nil {
+			return Inspection{}, false, err
+		}
+	}
+
+	var insp Inspection
+	if created {
+		insp, err = inspScan(tx.QueryRow(ctx, inspSelect+` WHERE id=$1`, newRowID))
+	} else {
+		insp, err = inspScan(tx.QueryRow(ctx, inspSelect+` WHERE external_id=$1`, externalID))
+	}
+	if err != nil {
+		return Inspection{}, false, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Inspection{}, false, err
+	}
+	return insp, created, nil
+}
+
+// ListInspections returns a line's inspections, most recent first.
+func (s *Store) ListInspections(ctx context.Context, lineID string) ([]Inspection, error) {
+	rows, err := s.Pool.Query(ctx, inspSelect+` WHERE line_id=$1 ORDER BY inspected_at DESC`, lineID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Inspection{}
+	for rows.Next() {
+		i, err := inspScan(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, i)
+	}
+	return out, rows.Err()
+}
+
+// Logbook returns a vessel's inspections (newest first) joined with line name and serial.
+func (s *Store) Logbook(ctx context.Context, vesselID string, limit int) ([]InspLogbookEntry, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	rows, err := s.Pool.Query(ctx, `
+SELECT i.id, i.line_id, i.vessel_id, i.inspected_at, COALESCE(i.inspected_by,''), i.source,
+       COALESCE(i.external_id,''), i.condition_status, COALESCE(i.notes,''), i.created_at,
+       ml.name, ml.serial_number
+FROM inspection i
+JOIN mooring_line ml ON ml.id = i.line_id
+WHERE i.vessel_id = $1
+ORDER BY i.inspected_at DESC
+LIMIT $2`, vesselID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []InspLogbookEntry{}
+	for rows.Next() {
+		var e InspLogbookEntry
+		if err := rows.Scan(&e.ID, &e.LineID, &e.VesselID, &e.InspectedAt, &e.InspectedBy, &e.Source,
+			&e.ExternalID, &e.ConditionStatus, &e.Notes, &e.CreatedAt, &e.LineName, &e.SerialNumber); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+// ConditionReport returns, for each top-level line of a vessel, its latest inspection
+// condition (falling back to the line's current_condition_status), for CSV/PDF export.
+func (s *Store) ConditionReport(ctx context.Context, vesselID string) (string, []InspReportRow, error) {
+	var vesselName string
+	if err := s.Pool.QueryRow(ctx, `SELECT name FROM vessel WHERE id=$1`, vesselID).Scan(&vesselName); err != nil {
+		return "", nil, err
+	}
+
+	rows, err := s.Pool.Query(ctx, `
+SELECT ml.name, ml.serial_number,
+       COALESCE(latest.condition_status, ml.current_condition_status, '') AS condition_status,
+       latest.inspected_at
+FROM mooring_line ml
+LEFT JOIN LATERAL (
+    SELECT i.condition_status, i.inspected_at
+    FROM inspection i
+    WHERE i.line_id = ml.id
+    ORDER BY i.inspected_at DESC
+    LIMIT 1
+) latest ON true
+WHERE ml.vessel_id = $1 AND ml.parent_line_id IS NULL
+ORDER BY ml.name`, vesselID)
+	if err != nil {
+		return vesselName, nil, err
+	}
+	defer rows.Close()
+
+	out := []InspReportRow{}
+	for rows.Next() {
+		var r InspReportRow
+		var inspectedAt *time.Time
+		if err := rows.Scan(&r.LineName, &r.SerialNumber, &r.ConditionStatus, &inspectedAt); err != nil {
+			return vesselName, nil, err
+		}
+		if inspectedAt != nil {
+			r.LastInspected = inspectedAt.Format("2006-01-02")
+		} else {
+			r.LastInspected = "—"
+		}
+		out = append(out, r)
+	}
+	return vesselName, out, rows.Err()
+}

@@ -12,3 +12,6 @@ web/dist/
 # Env
 .env
 .env.local
+
+# Local agent worktrees / session data
+.claude/

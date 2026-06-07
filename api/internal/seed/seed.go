@@ -120,8 +120,10 @@ func Run(ctx context.Context, pool *pgxpool.Pool, reset bool) error {
 		"Good", "Good", "Monitor", "Good", "Action", "Good"}
 	products := []string{prodMain, prodMain2}
 	var firstLineID string
+	lineIDs := make([]string, len(drumIDs))
 	for i, did := range drumIDs {
 		lid := id()
+		lineIDs[i] = lid
 		if i == 0 {
 			firstLineID = lid
 		}
@@ -182,6 +184,45 @@ func Run(ctx context.Context, pool *pgxpool.Pool, reset bool) error {
 		 length,can_be_turned,current_side,current_condition_status)
 		VALUES ($1,$2,$3,'Replacement (on order)','LUNA-ML-022','CERT-02004','ordered',220,true,'n/a','Good')`,
 		id(), LunaVesselID, prodMain)
+	if err != nil {
+		return err
+	}
+
+	// --- inspection history: spread across the last 5 months so the dashboard
+	// trend, logbook and per-line Inspections tab have real data ---
+	inspSQL := `INSERT INTO inspection
+		(id,line_id,vessel_id,inspected_at,inspected_by,source,condition_status,notes)
+		VALUES ($1,$2,$3, now() - make_interval(days => $4), $5,'manual',$6,$7)`
+	inspectors := []string{"A. Berg", "M. Olsen", "K. Haugen", "T. Nilsen"}
+	for i, lid := range lineIDs {
+		cond := conds[i%len(conds)]
+		// two historical inspections + one recent for every line
+		for j, ageDays := range []int{132, 71, 12} {
+			c := "Good"
+			if j == 2 {
+				c = cond // most-recent inspection matches the line's current status
+			} else if cond == "Action" && j == 1 {
+				c = "Monitor"
+			}
+			note := ""
+			if c == "Action" {
+				note = "Visible abrasion — schedule replacement."
+			} else if c == "Monitor" {
+				note = "Minor wear, keep under observation."
+			}
+			exec(ctx, tx, &err, inspSQL, id(), lid, LunaVesselID,
+				ageDays-i%7, inspectors[(i+j)%len(inspectors)], c, note)
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	// --- a couple of turn events on the first two lines ---
+	turnSQL := `INSERT INTO turn_event (id,line_id,event_type,event_date,side_after,note,origin)
+		VALUES ($1,$2,'turn', (current_date - make_interval(days => $3))::date, $4,$5,'onboard')`
+	exec(ctx, tx, &err, turnSQL, id(), lineIDs[0], 188, "B", "Routine end-for-end turn.")
+	exec(ctx, tx, &err, turnSQL, id(), lineIDs[1], 64, "A", "Turned after inspection.")
 	if err != nil {
 		return err
 	}

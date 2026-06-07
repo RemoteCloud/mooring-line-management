@@ -1,0 +1,48 @@
+/* Catalogue admin layout. Builds on the shared classes in styles.css. */
+
+.catalogue-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.catalogue-section .toolbar {
+  margin-bottom: 12px;
+}
+
+.catalogue-section h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+/* Inline "add maker" row: a small form that sits inside a card. */
+.catalogue-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.catalogue-inline-form .field {
+  margin-bottom: 0;
+}
+
+.catalogue-empty {
+  text-align: center;
+  padding: 24px;
+}
+
+.catalogue-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.catalogue-check input {
+  width: auto;
+}

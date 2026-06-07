@@ -39,6 +39,10 @@ func NewAPI(s *Server) (http.Handler, huma.API) {
 	registerCatalogue(api, s)
 	registerVessel(api, s)
 	registerLines(api, s)
+	registerTurn(api, s)
+	registerInspections(api, s)
+	registerFiles(api, s)
+	registerOverview(api, s)
 
 	return mux, api
 }

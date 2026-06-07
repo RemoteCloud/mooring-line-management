@@ -21,6 +21,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/inspections/ingest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ingest an inspection from the third-party API (idempotent by external_id) */
+        post: operations["insp-ingest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inspections/logbook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chronological inspection logbook for a vessel */
+        get: operations["insp-logbook"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/line-types": {
         parameters: {
             query?: never;
@@ -55,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/lines/{id}/certificate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a certificate, manual or guide for a line */
+        post: operations["file-add-cert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/lines/{id}/components": {
         parameters: {
             query?: never;
@@ -79,8 +130,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List files for a line (stub until files slice) */
-        get: operations["list-line-files"];
+        /** List documents (certificates/manuals/guides) for a line */
+        get: operations["file-list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -96,10 +147,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List inspections for a line (stub until inspections slice) */
-        get: operations["list-line-inspections"];
+        /** List inspections for a line */
+        get: operations["insp-list"];
         put?: never;
-        post?: never;
+        /** Log a manual inspection for a line */
+        post: operations["insp-log"];
         delete?: never;
         options?: never;
         head?: never;
@@ -123,6 +175,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/lines/{id}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List condition photos for a line */
+        get: operations["file-list-photos"];
+        put?: never;
+        /** Upload a condition photo for a line */
+        post: operations["file-add-photo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lines/{id}/turn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn a line to its other side */
+        post: operations["turn-line"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/makers": {
         parameters: {
             query?: never;
@@ -136,6 +223,23 @@ export interface paths {
         /** Create maker */
         post: operations["create-maker"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/photos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a condition photo */
+        delete: operations["file-del-photo"];
         options?: never;
         head?: never;
         patch?: never;
@@ -168,6 +272,23 @@ export interface paths {
         };
         /** Get product */
         get: operations["get-product"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/condition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a condition report (CSV or PDF) */
+        get: operations["insp-report"];
         put?: never;
         post?: never;
         delete?: never;
@@ -241,6 +362,23 @@ export interface paths {
         put?: never;
         /** Register a mooring line (supports lifecycle_status=ordered) */
         post: operations["register-line"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vessels/{vessel_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vessel dashboard overview (KPIs, condition, attention, trend) */
+        get: operations["over-get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -344,6 +482,76 @@ export interface components {
              */
             type: string;
         };
+        "File-add-certRequest": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/File-add-certRequest.json
+             */
+            readonly $schema?: string;
+            content_type?: string;
+            file_base64: string;
+            file_name: string;
+            /** @enum {string} */
+            kind?: "certificate" | "manual" | "guide";
+        };
+        "File-add-photoRequest": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/File-add-photoRequest.json
+             */
+            readonly $schema?: string;
+            /** @enum {string} */
+            condition_at_capture?: "Good" | "Monitor" | "Action";
+            content_type?: string;
+            file_base64: string;
+            inspection_id?: string;
+            /** @enum {string} */
+            side?: "A" | "B" | "n/a";
+            /** Format: date */
+            taken_at?: string;
+        };
+        FileDoc: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/FileDoc.json
+             */
+            readonly $schema?: string;
+            content_type?: string;
+            /** Format: date-time */
+            created_at: string;
+            file_name: string;
+            file_ref: string;
+            id: string;
+            kind: string;
+            line_id?: string;
+            product_id?: string;
+            /** Format: int64 */
+            size_bytes: number;
+            url?: string;
+            vessel_id?: string;
+        };
+        FilePhoto: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/FilePhoto.json
+             */
+            readonly $schema?: string;
+            condition_at_capture?: string;
+            /** Format: date-time */
+            created_at: string;
+            file_ref: string;
+            id: string;
+            inspection_id?: string;
+            line_id: string;
+            side?: string;
+            /** Format: date-time */
+            taken_at?: string;
+            url?: string;
+        };
         HealthOutputBody: {
             /**
              * Format: uri
@@ -368,6 +576,82 @@ export interface components {
             status: string;
             /** @description Configured vessel (onboard only) */
             vessel_id?: string;
+        };
+        "Insp-ingestResponse": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/Insp-ingestResponse.json
+             */
+            readonly $schema?: string;
+            created: boolean;
+            inspection: components["schemas"]["Inspection"];
+        };
+        InspIngestBody: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/InspIngestBody.json
+             */
+            readonly $schema?: string;
+            /** @enum {string} */
+            condition_status: "Good" | "Monitor" | "Action";
+            external_id?: string;
+            /** Format: date-time */
+            inspected_at?: string;
+            inspected_by?: string;
+            notes?: string;
+            serial_number: string;
+        };
+        InspLogBody: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/InspLogBody.json
+             */
+            readonly $schema?: string;
+            /** @enum {string} */
+            condition_status: "Good" | "Monitor" | "Action";
+            /** Format: date-time */
+            inspected_at?: string;
+            inspected_by?: string;
+            notes?: string;
+        };
+        InspLogbookEntry: {
+            condition_status: string;
+            /** Format: date-time */
+            created_at: string;
+            external_id?: string;
+            id: string;
+            /** Format: date-time */
+            inspected_at: string;
+            inspected_by?: string;
+            line_id: string;
+            line_name: string;
+            notes?: string;
+            serial_number: string;
+            source: string;
+            vessel_id: string;
+        };
+        Inspection: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/Inspection.json
+             */
+            readonly $schema?: string;
+            condition_status: string;
+            /** Format: date-time */
+            created_at: string;
+            external_id?: string;
+            id: string;
+            /** Format: date-time */
+            inspected_at: string;
+            inspected_by?: string;
+            line_id: string;
+            notes?: string;
+            source: string;
+            vessel_id: string;
         };
         Layout: {
             /**
@@ -515,6 +799,53 @@ export interface components {
             to_drum_id?: string;
             to_storage_id?: string;
         };
+        OverAttentionItem: {
+            condition_status: string;
+            id: string;
+            location_label: string;
+            name: string;
+            serial_number: string;
+        };
+        OverRecentInspection: {
+            condition_status: string;
+            /** Format: date-time */
+            inspected_at: string;
+            line_name: string;
+        };
+        OverTrendPoint: {
+            /** Format: int64 */
+            action: number;
+            /** Format: int64 */
+            inspections: number;
+            month: string;
+        };
+        Overview: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/Overview.json
+             */
+            readonly $schema?: string;
+            /** Format: int64 */
+            action: number;
+            /** Format: int64 */
+            active_lines: number;
+            attention: components["schemas"]["OverAttentionItem"][] | null;
+            /** Format: int64 */
+            avg_install_age_days: number;
+            /** Format: int64 */
+            good: number;
+            /** Format: int64 */
+            inspections_due: number;
+            /** Format: int64 */
+            monitor: number;
+            /** Format: int64 */
+            needing_attention: number;
+            recent_inspections: components["schemas"]["OverRecentInspection"][] | null;
+            /** Format: int64 */
+            spares: number;
+            trend: components["schemas"]["OverTrendPoint"][] | null;
+        };
         Product: {
             /**
              * Format: uri
@@ -566,6 +897,15 @@ export interface components {
             x: number;
             /** Format: double */
             y: number;
+        };
+        TurnBody: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/TurnBody.json
+             */
+            readonly $schema?: string;
+            note?: string;
         };
         Vessel: {
             /**
@@ -648,6 +988,71 @@ export interface operations {
             };
         };
     };
+    "insp-ingest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InspIngestBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Insp-ingestResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "insp-logbook": {
+        parameters: {
+            query?: {
+                vessel_id?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspLogbookEntry"][] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
     "list-line-types": {
         parameters: {
             query?: never;
@@ -708,6 +1113,41 @@ export interface operations {
             };
         };
     };
+    "file-add-cert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["File-add-certRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileDoc"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
     "add-component": {
         parameters: {
             query?: never;
@@ -743,7 +1183,7 @@ export interface operations {
             };
         };
     };
-    "list-line-files": {
+    "file-list": {
         parameters: {
             query?: never;
             header?: never;
@@ -760,7 +1200,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown[] | null;
+                    "application/json": components["schemas"]["FileDoc"][] | null;
                 };
             };
             /** @description Error */
@@ -774,7 +1214,7 @@ export interface operations {
             };
         };
     };
-    "list-line-inspections": {
+    "insp-list": {
         parameters: {
             query?: never;
             header?: never;
@@ -791,7 +1231,42 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown[] | null;
+                    "application/json": components["schemas"]["Inspection"][] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "insp-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InspLogBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Inspection"];
                 };
             };
             /** @description Error */
@@ -817,6 +1292,107 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["Move-lineRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Line"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "file-list-photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilePhoto"][] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "file-add-photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["File-add-photoRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FilePhoto"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "turn-line": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TurnBody"];
             };
         };
         responses: {
@@ -890,6 +1466,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Maker"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "file-del-photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -985,6 +1590,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Product"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "insp-report": {
+        parameters: {
+            query?: {
+                vessel_id?: string;
+                format?: "pdf" | "csv";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
             /** @description Error */
@@ -1217,6 +1856,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Line"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "over-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vessel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Overview"];
                 };
             };
             /** @description Error */

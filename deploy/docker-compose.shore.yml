@@ -1,0 +1,47 @@
+# Shore deployment: whole fleet. API + its own Postgres + MinIO. Fleet-wide scope.
+# Onboard deployments reconcile to this via async outbox sync (not live requests).
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: mooring
+      POSTGRES_PASSWORD: mooring
+      POSTGRES_DB: mooring
+    ports: ["5433:5432"]
+    volumes: ["shore_db:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mooring"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports: ["9002:9000", "9003:9001"]
+    volumes: ["shore_minio:/data"]
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    environment:
+      SCOPE: shore
+      HTTP_ADDR: ":8080"
+      DATABASE_URL: postgres://mooring:mooring@db:5432/mooring?sslmode=disable
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: mooring
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      JWT_SECRET: ${JWT_SECRET:-dev-insecure-change-me}
+    ports: ["8081:8080"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  shore_db:
+  shore_minio:

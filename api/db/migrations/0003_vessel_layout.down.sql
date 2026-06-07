@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS drum;
+DROP TABLE IF EXISTS storage_location;
+DROP TABLE IF EXISTS winch_location;
+DROP TABLE IF EXISTS vessel;

@@ -1,0 +1,14 @@
+# Go
+/bin/
+api/server
+*.test
+*.out
+
+# Node / frontend
+node_modules/
+web/dist/
+.DS_Store
+
+# Env
+.env
+.env.local

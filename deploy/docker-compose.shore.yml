@@ -46,6 +46,15 @@ services:
       db:
         condition: service_healthy
 
+  web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+      args:
+        VITE_SCOPE: shore
+    ports: ["8091:80"]
+    depends_on: [api]
+
 volumes:
   shore_db:
   shore_minio:

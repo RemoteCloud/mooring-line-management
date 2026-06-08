@@ -932,7 +932,13 @@
           "current_condition_status": {
             "type": "string"
           },
+          "current_drum_id": {
+            "type": "string"
+          },
           "current_side": {
+            "type": "string"
+          },
+          "current_storage_id": {
             "type": "string"
           },
           "id": {

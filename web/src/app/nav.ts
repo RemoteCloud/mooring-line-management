@@ -1,4 +1,5 @@
-// Navigation model. Catalogue is shore-only (master data authored on shore, §4.0).
+// Navigation model. Catalogue (master data) is reachable from both scopes — per
+// product decision, onboard crew can add vendors/models on deck too.
 import { isShore } from "../config";
 
 export type NavItem = { to: string; label: string; icon: string; shoreOnly?: boolean };
@@ -10,7 +11,7 @@ export const NAV: NavItem[] = [
   { to: "/inspections", label: "Inspections", icon: "✓" },
   { to: "/logbook", label: "Log book", icon: "❏" },
   { to: "/files", label: "Files & certs", icon: "📄" },
-  { to: "/catalogue", label: "Catalogue", icon: "⚙", shoreOnly: true },
+  { to: "/catalogue", label: "Catalogue", icon: "⚙" },
 ];
 
 export const visibleNav = () => NAV.filter((n) => !n.shoreOnly || isShore());

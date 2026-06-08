@@ -17,7 +17,7 @@ function dotColor(status: string | undefined): string {
 
 // Status mark mirrors the .dot CSS shapes so the deck map reads without color:
 // Good=circle, Monitor=diamond, Action=triangle. cx/cy = center, r = radius.
-function StatusMark({ status, cx, cy, r = 7 }: { status: string | undefined; cx: number; cy: number; r?: number }) {
+function StatusMark({ status, cx, cy, r = 9 }: { status: string | undefined; cx: number; cy: number; r?: number }) {
   const fill = dotColor(status);
   const cls = condClass(status as never);
   const stroke = "var(--bg)";
@@ -31,10 +31,10 @@ function StatusMark({ status, cx, cy, r = 7 }: { status: string | undefined; cx:
   return <circle cx={cx} cy={cy} r={r} fill={fill} stroke={stroke} strokeWidth={sw} />;
 }
 
-const DRUM_W = 20;
-const DRUM_H = 30;
-const DRUM_GAP = 4;
-const PAD = 8;
+const DRUM_W = 28;
+const DRUM_H = 42;
+const DRUM_GAP = 5;
+const PAD = 11;
 
 export function winchBox(w: Winch) {
   const inner = w.drum_count * DRUM_W + (w.drum_count - 1) * DRUM_GAP;
@@ -77,17 +77,17 @@ export function WinchSymbol({
         );
       })}
       {/* worst-case status mark (shape carries status, not just color) */}
-      <StatusMark status={w.worst_status} cx={bw / 2 - 4} cy={-bh / 2 + 4} />
+      <StatusMark status={w.worst_status} cx={bw / 2 - 7} cy={-bh / 2 + 7} />
       {/* drive-type marker, top-left: E electric / H hydraulic */}
       <text
         className="sym-drive"
-        x={-bw / 2 + 6}
-        y={-bh / 2 + 11}
-        transform={`rotate(${-w.orientation} ${-bw / 2 + 6} ${-bh / 2 + 7})`}
+        x={-bw / 2 + 9}
+        y={-bh / 2 + 15}
+        transform={`rotate(${-w.orientation} ${-bw / 2 + 9} ${-bh / 2 + 11})`}
       >
         {w.drive_type === "hydraulic" ? "H" : "E"}
       </text>
-      <text className="sym-label" x={0} y={bh / 2 + 16} transform={`rotate(${-w.orientation})`}>{w.label}</text>
+      <text className="sym-label" x={0} y={bh / 2 + 18} transform={`rotate(${-w.orientation})`}>{w.label}</text>
     </g>
   );
 }

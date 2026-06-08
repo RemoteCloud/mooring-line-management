@@ -746,7 +746,9 @@ export interface components {
             build_age_days: number;
             certificate_number?: string;
             current_condition_status?: string;
+            current_drum_id?: string;
             current_side?: string;
+            current_storage_id?: string;
             id: string;
             /** Format: int64 */
             install_age_days: number;

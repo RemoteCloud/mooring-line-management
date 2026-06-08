@@ -57,6 +57,9 @@ export function useLogInspection(lineId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inspections", lineId] });
       qc.invalidateQueries({ queryKey: ["line", lineId] });
+      // a new condition changes the register row status and the deck worst-status
+      qc.invalidateQueries({ queryKey: ["lines"] });
+      qc.invalidateQueries({ queryKey: ["layout"] });
     },
   });
 }

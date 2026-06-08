@@ -1,9 +1,8 @@
-import { useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
 import { useVessel } from "../../app/VesselContext";
 import { useVesselLayout, useLines, useSaveLayout, type Layout, type Winch, type Storage } from "../../api/hooks";
 import { WinchSymbol, StorageSymbol, Hull, VB_W, VB_H } from "./symbols";
-import { StatusDot } from "../../components/ui";
+import { WinchPanel, StoragePanel } from "./WinchPanel";
 
 type Station = "fwd" | "aft";
 const ORIENTATIONS = [0, 45, -45, 90, -90];
@@ -54,7 +53,6 @@ function renumberAuto(winches: Winch[]) {
 
 export function DeckPage() {
   const { vesselId } = useVessel();
-  const navigate = useNavigate();
   const { data: layout } = useVesselLayout(vesselId);
   const { data: lines } = useLines(vesselId, {});
   const save = useSaveLayout(vesselId ?? "");
@@ -161,16 +159,6 @@ export function DeckPage() {
   const editWinch = draft?.winches.find((w) => w.id === selKey);
   const editStorage = draft?.storage.find((s) => s.id === selKey);
 
-  // view-mode panel: ropes at the selected symbol
-  const viewLines = useMemo(() => {
-    if (edit || !selKey || !lines) return [];
-    const w = layout?.winches.find((w) => w.id === selKey);
-    const s = layout?.storage.find((s) => s.id === selKey);
-    if (w) return lines.items.filter((l) => l.location_label.startsWith(w.label + " "));
-    if (s) return lines.items.filter((l) => l.location_label === s.label);
-    return [];
-  }, [edit, selKey, lines, layout]);
-
   const selWinch = !edit ? layout?.winches.find((w) => w.id === selKey) : undefined;
   const selStorage = !edit ? layout?.storage.find((s) => s.id === selKey) : undefined;
 
@@ -245,39 +233,12 @@ export function DeckPage() {
             ) : (
               <p className="muted">Select a symbol to edit, or drag to reposition. Add winches/storage from the toolbar — new winches are auto-named from their deck position.</p>
             )
-          ) : selWinch ? (
-            <>
-              <h3 style={{ marginTop: 0 }}>{selWinch.label}</h3>
-              <p className="muted" style={{ marginTop: -6 }}>
-                {positionLabel(selWinch.station, selWinch.x)} · {selWinch.drive_type === "hydraulic" ? "Hydraulic" : "Electric"}
-              </p>
-              {viewLines.length === 0 && <p className="muted">No ropes here.</p>}
-              {viewLines.map((l) => (
-                <div key={l.id} className="list-item" onClick={() => navigate(`/lines/${l.id}`)}>
-                  <StatusDot condition={l.current_condition_status as never} />
-                  <div style={{ flex: 1 }}>
-                    <div>{l.name}</div>
-                    <div className="muted" style={{ fontSize: 12 }}>{l.location_label} · {l.serial_number}</div>
-                  </div>
-                </div>
-              ))}
-            </>
-          ) : selStorage ? (
-            <>
-              <h3 style={{ marginTop: 0 }}>{selStorage.label}</h3>
-              {viewLines.length === 0 && <p className="muted">No ropes here.</p>}
-              {viewLines.map((l) => (
-                <div key={l.id} className="list-item" onClick={() => navigate(`/lines/${l.id}`)}>
-                  <StatusDot condition={l.current_condition_status as never} />
-                  <div style={{ flex: 1 }}>
-                    <div>{l.name}</div>
-                    <div className="muted" style={{ fontSize: 12 }}>{l.location_label} · {l.serial_number}</div>
-                  </div>
-                </div>
-              ))}
-            </>
+          ) : selWinch && layout && vesselId ? (
+            <WinchPanel winch={selWinch} layout={layout} lines={lines?.items ?? []} vesselId={vesselId} />
+          ) : selStorage && layout && vesselId ? (
+            <StoragePanel storage={selStorage} layout={layout} lines={lines?.items ?? []} vesselId={vesselId} />
           ) : (
-            <p className="muted">Click a winch or storage to see its ropes. Worst-case status shown by the corner marker: ● Good, ◆ Monitor, ▲ Action.</p>
+            <p className="muted">Click a winch or storage to manage its ropes. Worst-case status shown by the corner marker: ● Good, ◆ Monitor, ▲ Action.</p>
           )}
         </div>
       </div>

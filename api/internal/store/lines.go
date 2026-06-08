@@ -14,6 +14,19 @@ import (
 // ErrDrumOccupied is returned when moving a line onto a drum that already holds one.
 var ErrDrumOccupied = errors.New("drum already holds a line")
 
+// ErrInvalidMoveTarget is returned when a move request names neither or both
+// destinations, or a destination that belongs to a different vessel.
+var ErrInvalidMoveTarget = errors.New("invalid move target")
+
+// validateMoveRequest enforces exactly-one destination (drum XOR storage). Pure
+// and DB-free so it is unit-testable without a database.
+func validateMoveRequest(toDrumID, toStorageID string) error {
+	if (toDrumID == "") == (toStorageID == "") {
+		return ErrInvalidMoveTarget // both empty or both set
+	}
+	return nil
+}
+
 type LineFilter struct {
 	LineTypeID string
 	Condition  string
@@ -33,7 +46,8 @@ SELECT ml.id, ml.name, ml.serial_number, COALESCE(ml.tag_number,''),
             WHEN ml.current_storage_id IS NOT NULL THEN st.label
             ELSE '—' END AS location_label,
        (ml.current_drum_id IS NOT NULL) AS installed,
-       ml.installation_date, ml.manufacture_date
+       ml.installation_date, ml.manufacture_date,
+       ml.current_drum_id, ml.current_storage_id
 FROM mooring_line ml
 JOIN product p ON p.id = ml.product_id
 JOIN maker m ON m.id = p.maker_id
@@ -47,7 +61,8 @@ func scanRow(row pgx.Row, now time.Time) (LineRow, error) {
 	var inst, mfg *time.Time
 	err := row.Scan(&r.ID, &r.Name, &r.SerialNumber, &r.TagNumber, &r.CertificateNumber,
 		&r.LifecycleStatus, &r.ProductName, &r.MakerName, &r.LineTypeName,
-		&r.CurrentConditionStatus, &r.CurrentSide, &r.LocationLabel, &r.Installed, &inst, &mfg)
+		&r.CurrentConditionStatus, &r.CurrentSide, &r.LocationLabel, &r.Installed, &inst, &mfg,
+		&r.CurrentDrumID, &r.CurrentStorageID)
 	if err != nil {
 		return r, err
 	}
@@ -239,6 +254,9 @@ VALUES ($1,$2,$3,$4,NULLIF($5,''),NULLIF($6,''),$7,$8,$9,$10,$11,$12,$13,$14)`,
 // MoveLine relocates a line to a drum or to storage (exactly one). Enforces
 // one-line-per-drum via the partial unique index.
 func (s *Store) MoveLine(ctx context.Context, id, toDrumID, toStorageID string) (Line, error) {
+	if err := validateMoveRequest(toDrumID, toStorageID); err != nil {
+		return Line{}, err
+	}
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return Line{}, err
@@ -247,6 +265,21 @@ func (s *Store) MoveLine(ctx context.Context, id, toDrumID, toStorageID string) 
 
 	var vesselID string
 	if err := tx.QueryRow(ctx, `SELECT vessel_id FROM mooring_line WHERE id=$1`, id).Scan(&vesselID); err != nil {
+		return Line{}, err
+	}
+
+	// The destination must belong to the same vessel as the line. Onboard is a
+	// single vessel so this is unreachable there; it guards the shore/fleet case.
+	var targetVessel string
+	if toDrumID != "" {
+		err = tx.QueryRow(ctx, `SELECT w.vessel_id FROM drum d JOIN winch_location w ON w.id=d.winch_id WHERE d.id=$1`, toDrumID).Scan(&targetVessel)
+	} else {
+		err = tx.QueryRow(ctx, `SELECT vessel_id FROM storage_location WHERE id=$1`, toStorageID).Scan(&targetVessel)
+	}
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && targetVessel != vesselID) {
+		return Line{}, ErrInvalidMoveTarget
+	}
+	if err != nil {
 		return Line{}, err
 	}
 

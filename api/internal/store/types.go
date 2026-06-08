@@ -90,6 +90,8 @@ type LineRow struct {
 	CurrentConditionStatus string     `json:"current_condition_status,omitempty"`
 	CurrentSide            string     `json:"current_side,omitempty"`
 	LocationLabel          string     `json:"location_label"`
+	CurrentDrumID          *string    `json:"current_drum_id,omitempty"`
+	CurrentStorageID       *string    `json:"current_storage_id,omitempty"`
 	Installed              bool       `json:"installed"`
 	InstallAgeDays         int        `json:"install_age_days"`
 	BuildAgeDays           int        `json:"build_age_days"`

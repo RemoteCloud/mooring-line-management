@@ -223,8 +223,8 @@ table.grid tbody tr:hover { background: var(--bg-elev-2); }
 .winch-body.sel { stroke: var(--accent); stroke-width: 2.5; }
 .drum-cell { fill: var(--bg); stroke: var(--border); stroke-width: 1; }
 .drum-cell.filled { fill: var(--accent-deep); }
-.sym-label { fill: var(--text); font-size: 11px; font-weight: 600; text-anchor: middle; }
-.sym-drive { fill: var(--muted); font-size: 10px; font-weight: 700; text-anchor: middle; }
+.sym-label { fill: var(--text); font-size: 14px; font-weight: 600; text-anchor: middle; }
+.sym-drive { fill: var(--muted); font-size: 13px; font-weight: 700; text-anchor: middle; }
 .linkbtn { background: none; border: none; padding: 0; color: var(--accent); font-size: 12px; cursor: pointer; }
 .linkbtn:hover { text-decoration: underline; }
 .hull { fill: color-mix(in oklab, var(--bg-elev) 60%, transparent); stroke: var(--border); stroke-width: 2; }
@@ -235,3 +235,24 @@ table.grid tbody tr:hover { background: var(--bg-elev-2); }
 .preset-row button.active { background: var(--accent-deep); color: #fff; border-color: var(--accent); }
 .list-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
 .list-item:hover { color: var(--accent); }
+
+/* Deck winch panel — one row per drum, with rope + inline actions. */
+.drum-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.drum-row { display: flex; flex-direction: column; gap: 8px; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-elev-2); }
+.drum-head { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.drum-tag { font: 700 12px/1 var(--mono); color: var(--text-dim); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; min-width: 32px; text-align: center; flex: none; }
+.drum-line { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: none; border: none; color: var(--text); text-align: left; cursor: pointer; padding: 0; }
+.drum-line:hover .drum-line-name { color: var(--accent); }
+.drum-line-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.drum-line-side { font-size: 12px; margin-left: auto; flex: none; }
+.drum-actions { display: flex; align-items: center; gap: 6px; }
+.drum-actions .chip { flex: 1; padding: 0 8px; }
+.drum-empty { font-size: 13px; font-style: italic; }
+.chip { min-height: var(--touch); padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elev); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; }
+.chip:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.chip:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.pick-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow: auto; margin: 10px 0; }
+.pick-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--touch); padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elev-2); color: var(--text); cursor: pointer; text-align: left; }
+.pick-row:hover:not(:disabled) { border-color: var(--accent); }
+.pick-row:disabled { opacity: 0.5; cursor: default; }

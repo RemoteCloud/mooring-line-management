@@ -125,6 +125,38 @@ export function useRegisterLine(vesselId: string) {
   });
 }
 
+// MoveError normalizes any non-2xx move failure into a status + message so the
+// UI can show a clear inline error (409 occupied, 422 bad target, 404, etc.).
+export type MoveError = { status: number; message: string };
+
+export function useMoveLine(vesselId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<Line, MoveError, { lineId: string; toDrumId?: string; toStorageId?: string }>({
+    mutationFn: async ({ lineId, toDrumId, toStorageId }) => {
+      const { data, error, response } = await api.POST("/lines/{id}/move", {
+        params: { path: { id: lineId } },
+        body: { to_drum_id: toDrumId, to_storage_id: toStorageId },
+      });
+      if (error || !data) {
+        const detail = (error as { detail?: string } | undefined)?.detail;
+        const msg =
+          response?.status === 409 ? "That drum already holds a line."
+          : response?.status === 422 ? (detail ?? "Invalid move target.")
+          : response?.status === 404 ? "Line or destination not found."
+          : detail ?? "Move failed. Try again.";
+        throw { status: response?.status ?? 0, message: msg } as MoveError;
+      }
+      return data as Line;
+    },
+    // occupancy + worst-status change, so both the register list and the deck
+    // layout must refetch.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lines"] });
+      qc.invalidateQueries({ queryKey: ["layout", vesselId] });
+    },
+  });
+}
+
 export function useSaveLayout(vesselId: string) {
   const qc = useQueryClient();
   return useMutation({

@@ -20,6 +20,8 @@ func mapErr(err error) error {
 		return huma.Error409Conflict("drum already holds a line")
 	case errors.Is(err, store.ErrOccupied):
 		return huma.Error409Conflict("position still holds a line")
+	case errors.Is(err, store.ErrInvalidMoveTarget):
+		return huma.Error422UnprocessableEntity("invalid move target: name exactly one destination on this vessel")
 	default:
 		return huma.Error500InternalServerError("internal error", err)
 	}

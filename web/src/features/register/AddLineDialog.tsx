@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useProducts, useRegisterLine, useMoveLine, type MoveError } from "../../api/hooks";
+import { postPhoto, postDocument, fileToBase64 } from "../files/api";
+
+type Attachment = { file: File; kind: "photo" | "delivery" };
 
 // AddLineDialog registers a line. When `targetDrumId` is given (the deck
 // "register here" flow), the line is created as a spare and then moved onto that
@@ -17,6 +20,41 @@ export function AddLineDialog({
   const move = useMoveLine(vesselId);
   const placing = !!targetDrumId;
   const [placeErr, setPlaceErr] = useState<string | null>(null);
+
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const docInput = useRef<HTMLInputElement>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  const addFiles = (kind: Attachment["kind"]) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []).map((file) => ({ file, kind }));
+    if (picked.length) setAttachments((a) => [...a, ...picked]);
+    e.target.value = ""; // allow re-picking the same file
+  };
+  const removeAttachment = (i: number) => setAttachments((a) => a.filter((_, idx) => idx !== i));
+
+  // Upload staged files to a freshly-created line. Never throws: the line already
+  // exists, so a failed upload is surfaced, not fatal. Returns the failure count.
+  const uploadAttachments = async (lineId: string): Promise<number> => {
+    let failed = 0;
+    for (const { file, kind } of attachments) {
+      try {
+        const file_base64 = await fileToBase64(file);
+        if (kind === "photo") {
+          await postPhoto(lineId, { file_base64, content_type: file.type || undefined });
+        } else {
+          await postDocument(lineId, {
+            file_base64, file_name: file.name,
+            content_type: file.type || undefined, kind: "delivery",
+          });
+        }
+      } catch {
+        failed += 1;
+      }
+    }
+    return failed;
+  };
 
   const [form, setForm] = useState({
     product_id: "",
@@ -36,6 +74,7 @@ export function AddLineDialog({
 
   const submit = async () => {
     setPlaceErr(null);
+    setUploadErr(null);
     const line = await register.mutateAsync({
       product_id: form.product_id,
       name: form.name,
@@ -54,6 +93,17 @@ export function AddLineDialog({
       } catch (e) {
         // line exists as a valid spare; surface the placement failure and stop.
         setPlaceErr((e as MoveError)?.message ?? "Registered as spare, but placing on the drum failed.");
+        return;
+      }
+    }
+    if (attachments.length) {
+      setUploading(true);
+      const failed = await uploadAttachments(line.id);
+      setUploading(false);
+      if (failed > 0) {
+        // line is saved; let the user retry the rest from the rope record.
+        setUploadErr(`${failed} of ${attachments.length} attachment${attachments.length === 1 ? "" : "s"} failed to upload.`);
+        setAttachments([]);
         return;
       }
     }
@@ -121,13 +171,38 @@ export function AddLineDialog({
           <div className="field"><label>Installation date</label><input className="input" type="date" value={form.installation_date} onChange={set("installation_date")} /></div>
         </div>
 
+        <div className="field">
+          <label>Attachments</label>
+          <span className="muted" style={{ fontSize: 12 }}>
+            Delivery document or photos — captured now or added later on the rope record.
+          </span>
+          <div className="attach-actions">
+            <button type="button" className="btn ghost" onClick={() => docInput.current?.click()}>+ Delivery document</button>
+            <button type="button" className="btn ghost" onClick={() => photoInput.current?.click()}>+ Photo</button>
+          </div>
+          <input ref={docInput} type="file" accept="application/pdf,image/*" multiple hidden onChange={addFiles("delivery")} />
+          <input ref={photoInput} type="file" accept="image/*" capture="environment" multiple hidden onChange={addFiles("photo")} />
+          {attachments.length > 0 && (
+            <ul className="attach-list">
+              {attachments.map((a, i) => (
+                <li key={i}>
+                  <span className="attach-kind">{a.kind === "photo" ? "Photo" : "Document"}</span>
+                  <span className="attach-name">{a.file.name}</span>
+                  <button type="button" className="attach-remove" onClick={() => removeAttachment(i)} aria-label="Remove">×</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         {register.isError && <div className="err">Could not register line (serial may already exist).</div>}
         {placeErr && <div className="err">{placeErr} The line was saved as a spare — assign it from the register or deck.</div>}
+        {uploadErr && <div className="err">{uploadErr} The line was saved — add the missing files from its record.</div>}
 
         <div className="dialog-actions">
-          <button className="btn ghost" onClick={onClose}>{placeErr ? "Close" : "Cancel"}</button>
-          <button className="btn" disabled={!valid || register.isPending || move.isPending} onClick={submit}>
-            {register.isPending || move.isPending ? "Saving…" : placing ? "Register & place" : "Register line"}
+          <button className="btn ghost" onClick={onClose}>{placeErr || uploadErr ? "Close" : "Cancel"}</button>
+          <button className="btn" disabled={!valid || register.isPending || move.isPending || uploading} onClick={submit}>
+            {uploading ? "Uploading…" : register.isPending || move.isPending ? "Saving…" : placing ? "Register & place" : "Register line"}
           </button>
         </div>
       </div>

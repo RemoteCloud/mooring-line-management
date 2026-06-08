@@ -11,7 +11,7 @@ import "./files.css";
 
 const SIDES = ["n/a", "A", "B"] as const;
 const CONDITIONS = ["Good", "Monitor", "Action"] as const;
-const KINDS = ["certificate", "manual", "guide"] as const;
+const KINDS = ["certificate", "manual", "guide", "delivery"] as const;
 
 function humanSize(bytes: number): string {
   if (!bytes) return "—";

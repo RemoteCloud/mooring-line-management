@@ -74,17 +74,23 @@ export interface UploadPhotoInput {
   inspection_id?: string;
 }
 
+// postPhoto / postDocument take the line id as a parameter so callers that only
+// learn the id at submit time (uploading right after registering a line) can reuse
+// the exact same request as the hooks below.
+export function postPhoto(lineId: string, input: UploadPhotoInput): Promise<FilePhoto> {
+  return jsonOrThrow<FilePhoto>(
+    fetch(`${API_BASE}/lines/${lineId}/photos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
 export function useUploadPhoto(lineId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: UploadPhotoInput) =>
-      jsonOrThrow<FilePhoto>(
-        fetch(`${API_BASE}/lines/${lineId}/photos`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(input),
-        }),
-      ),
+    mutationFn: (input: UploadPhotoInput) => postPhoto(lineId, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["photos", lineId] }),
   });
 }
@@ -114,17 +120,20 @@ export interface UploadCertificateInput {
   kind?: string;
 }
 
+export function postDocument(lineId: string, input: UploadCertificateInput): Promise<FileDoc> {
+  return jsonOrThrow<FileDoc>(
+    fetch(`${API_BASE}/lines/${lineId}/certificate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
 export function useUploadCertificate(lineId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: UploadCertificateInput) =>
-      jsonOrThrow<FileDoc>(
-        fetch(`${API_BASE}/lines/${lineId}/certificate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(input),
-        }),
-      ),
+    mutationFn: (input: UploadCertificateInput) => postDocument(lineId, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["documents", lineId] }),
   });
 }

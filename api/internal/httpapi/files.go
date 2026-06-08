@@ -116,7 +116,7 @@ func registerFiles(api huma.API, s *Server) {
 			FileBase64  string `json:"file_base64"`
 			FileName    string `json:"file_name"`
 			ContentType string `json:"content_type,omitempty"`
-			Kind        string `json:"kind,omitempty" enum:"certificate,manual,guide"`
+			Kind        string `json:"kind,omitempty" enum:"certificate,manual,guide,delivery"`
 		}
 	}) (*struct{ Body store.FileDoc }, error) {
 		if fs == nil {

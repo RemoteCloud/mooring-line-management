@@ -253,7 +253,8 @@
             "enum": [
               "certificate",
               "manual",
-              "guide"
+              "guide",
+              "delivery"
             ],
             "type": "string"
           }

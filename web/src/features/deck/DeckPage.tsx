@@ -12,7 +12,13 @@ const clone = (l: Layout): Layout => JSON.parse(JSON.stringify(l));
 
 // A new, unsaved symbol carries a "tmp:" id so its key stays stable while we
 // relabel it; doSave strips the prefix back to undefined for the API.
-const tmpID = () => "tmp:" + crypto.randomUUID();
+// crypto.randomUUID is unavailable in insecure contexts (http over a LAN IP,
+// which is exactly how onboard tablets reach the PWA), so fall back.
+let tmpSeq = 0;
+const tmpID = () => {
+  const rand = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${++tmpSeq}`;
+  return "tmp:" + rand;
+};
 const isTmp = (id: string) => id.startsWith("tmp:");
 
 // Deck side from the normalized x: the map is a top-down plan with the bow up,

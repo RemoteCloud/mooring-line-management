@@ -14,6 +14,10 @@
   --monitor: #e0a325;
   --action: #e05a4d;
 
+  /* alias kept so SVG fills referencing it never resolve to black */
+  --muted: var(--text-dim);
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+
   --radius: 10px;
   --radius-sm: 7px;
   --gap: 16px;
@@ -113,10 +117,16 @@ button { font: inherit; cursor: pointer; }
 .kpi-label { color: var(--text-dim); font-size: 13px; }
 .kpi-value { font-size: 30px; font-weight: 720; margin-top: 6px; }
 
-.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.dot.good { background: var(--good); }
-.dot.monitor { background: var(--monitor); }
-.dot.action { background: var(--action); }
+/* Status is the signal: shape carries it too, so it survives glare, grayscale,
+   and color blindness. Good=circle, Monitor=diamond, Action=triangle. */
+.dot { width: 11px; height: 11px; display: inline-block; flex: none; vertical-align: -1px; }
+.dot.good { background: var(--good); border-radius: 50%; }
+.dot.monitor { background: var(--monitor); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.dot.action { background: var(--action); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+
+.cond-text.good { color: var(--good); }
+.cond-text.monitor { color: var(--monitor); }
+.cond-text.action { color: var(--action); }
 
 .pill { font-size: 12px; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
 .pill.ok { background: color-mix(in oklab, var(--good) 22%, transparent); color: var(--good); }

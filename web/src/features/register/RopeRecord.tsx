@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useLine, type Line } from "../../api/hooks";
 import { StatusDot, CopyButton, LifecycleBadge } from "../../components/ui";
-import { ageLabel, dateLabel } from "../../lib/format";
+import { ageLabel, dateLabel, condClass } from "../../lib/format";
 import { TurnButton } from "../turning/TurnButton";
 import { InspectionsTab } from "../inspections/InspectionsTab";
 import { FilesTab } from "../files/FilesTab";
@@ -29,6 +29,7 @@ export function RopeRecord() {
         </div>
         <div className="grow" style={{ flex: 1 }} />
         <div className="record-meta">
+          <div><b className={"cond-text " + condClass(l.current_condition_status as never)}>{l.current_condition_status || "—"}</b>condition</div>
           <div><b>{l.current_side || "n/a"}</b>side in use</div>
           <div><b>{ageLabel(l.install_age_days)}</b>install age</div>
           <div><b>{ageLabel(l.build_age_days)}</b>build age</div>

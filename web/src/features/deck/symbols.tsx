@@ -15,6 +15,22 @@ function dotColor(status: string | undefined): string {
   }
 }
 
+// Status mark mirrors the .dot CSS shapes so the deck map reads without color:
+// Good=circle, Monitor=diamond, Action=triangle. cx/cy = center, r = radius.
+function StatusMark({ status, cx, cy, r = 7 }: { status: string | undefined; cx: number; cy: number; r?: number }) {
+  const fill = dotColor(status);
+  const cls = condClass(status as never);
+  const stroke = "var(--bg)";
+  const sw = 1.25;
+  if (cls === "monitor") {
+    return <path d={`M${cx} ${cy - r}L${cx + r} ${cy}L${cx} ${cy + r}L${cx - r} ${cy}Z`} fill={fill} stroke={stroke} strokeWidth={sw} />;
+  }
+  if (cls === "action") {
+    return <path d={`M${cx} ${cy - r}L${cx + r} ${cy + r}L${cx - r} ${cy + r}Z`} fill={fill} stroke={stroke} strokeWidth={sw} />;
+  }
+  return <circle cx={cx} cy={cy} r={r} fill={fill} stroke={stroke} strokeWidth={sw} />;
+}
+
 const DRUM_W = 20;
 const DRUM_H = 30;
 const DRUM_GAP = 4;
@@ -60,8 +76,8 @@ export function WinchSymbol({
           />
         );
       })}
-      {/* worst-case status dot (counter-rotated so it stays top-right visually) */}
-      <circle cx={bw / 2 - 4} cy={-bh / 2 + 4} r={6} fill={dotColor(w.worst_status)} stroke="var(--bg)" strokeWidth={1.5} />
+      {/* worst-case status mark (shape carries status, not just color) */}
+      <StatusMark status={w.worst_status} cx={bw / 2 - 4} cy={-bh / 2 + 4} />
       {/* drive-type marker, top-left: E electric / H hydraulic */}
       <text
         className="sym-drive"
@@ -93,7 +109,7 @@ export function StorageSymbol({
       <rect className={"winch-body" + (selected ? " sel" : "")} x={-w / 2} y={-h / 2} width={w} height={h} rx={6}
             strokeDasharray="5 4" />
       <text className="sym-label" x={0} y={4}>▤ {s.line_count}</text>
-      <circle cx={w / 2 - 4} cy={-h / 2 + 4} r={6} fill={dotColor(s.worst_status)} stroke="var(--bg)" strokeWidth={1.5} />
+      <StatusMark status={s.worst_status} cx={w / 2 - 4} cy={-h / 2 + 4} />
       <text className="sym-label" x={0} y={h / 2 + 16}>{s.label}</text>
     </g>
   );

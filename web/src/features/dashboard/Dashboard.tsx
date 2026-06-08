@@ -3,7 +3,7 @@
 import { Link } from "react-router-dom";
 import { useVessel } from "../../app/VesselContext";
 import { StatusDot } from "../../components/ui";
-import { ageLabel, dateLabel, type Condition } from "../../lib/format";
+import { ageLabel, dateLabel, condClass, type Condition } from "../../lib/format";
 import { useOverview, type Overview, type OverTrendPoint } from "./api";
 import "./dashboard.css";
 
@@ -164,6 +164,9 @@ function AttentionList({ o }: { o: Overview }) {
             <span className="attn-meta">{it.serial_number}</span>
           </span>
           <span className="attn-loc">{it.location_label}</span>
+          <span className={"attn-cond " + condClass(it.condition_status as Condition)}>
+            {it.condition_status}
+          </span>
         </Link>
       ))}
     </div>

@@ -277,7 +277,7 @@ export function DeckPage() {
               ))}
             </>
           ) : (
-            <p className="muted">Click a winch or storage to see its ropes. Worst-case status shown by the dot.</p>
+            <p className="muted">Click a winch or storage to see its ropes. Worst-case status shown by the corner marker: ● Good, ◆ Monitor, ▲ Action.</p>
           )}
         </div>
       </div>

@@ -15,7 +15,6 @@ type SortKey = keyof Pick<
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "name", label: "Line" },
   { key: "product_name", label: "Product" },
-  { key: "maker_name", label: "Maker" },
   { key: "line_type_name", label: "Type" },
   { key: "location_label", label: "Location" },
   { key: "current_condition_status", label: "Condition" },
@@ -118,8 +117,10 @@ export function RegisterPage() {
                   <div>{r.name}</div>
                   <div className="muted" style={{ fontSize: 12 }}>{r.serial_number}</div>
                 </td>
-                <td>{r.product_name}</td>
-                <td className="muted">{r.maker_name}</td>
+                <td>
+                  <div>{r.product_name}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{r.maker_name}</div>
+                </td>
                 <td>{r.line_type_name}</td>
                 <td>{r.location_label}</td>
                 <td><StatusDot condition={r.current_condition_status as never} /> {r.current_condition_status || "—"}</td>

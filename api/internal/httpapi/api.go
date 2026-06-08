@@ -29,7 +29,12 @@ func NewAPI(s *Server) (http.Handler, huma.API) {
 
 	cfg := huma.DefaultConfig("Mooring Line Management API", "0.1.0")
 	cfg.Info.Description = "Fleet-wide mooring line management. Same API runs onboard (single vessel) and shore (fleet); scope is configuration."
+	// Disable Huma's unpkg-CDN docs page; we serve a self-hosted, offline-safe one
+	// (registerDocs) instead. /openapi.json|yaml are still served by Huma.
+	cfg.DocsPath = ""
 	api := humago.New(mux, cfg)
+
+	registerDocs(mux)
 
 	// Cross-cutting: scope guard runs before feature handlers (registered as middleware).
 	api.UseMiddleware(ScopeMiddleware(api, s.Cfg))

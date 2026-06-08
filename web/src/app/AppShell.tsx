@@ -58,6 +58,12 @@ export function AppShell() {
                 <span className="label">{n.label}</span>
               </NavLink>
             ))}
+            {/* /docs is a server-rendered page (proxied to the API), not an SPA
+                route — a plain anchor does a real navigation past the router. */}
+            <a className="nav-link" href="/docs" target="_blank" rel="noopener">
+              <span className="nav-ico">⟨⟩</span>
+              <span className="label">API docs</span>
+            </a>
           </nav>
         </aside>
 

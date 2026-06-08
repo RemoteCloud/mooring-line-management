@@ -23,6 +23,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // The SPA navigation fallback serves index.html for navigations; exclude the
+        // server-rendered API reference + spec so they reach nginx/the API instead of
+        // being hijacked into the app.
+        navigateFallbackDenylist: [/^\/docs(\/|$)/, /^\/openapi\./],
         // Offline read access to line data and status (spec §6). API GETs are cached
         // stale-while-revalidate so deck views and the register work on deck offline.
         runtimeCaching: [

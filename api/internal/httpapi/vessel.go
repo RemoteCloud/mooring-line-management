@@ -81,6 +81,7 @@ func registerVessel(api huma.API, s *Server) {
 			input.Winches = append(input.Winches, store.WinchInput{
 				ID: w.ID, Label: w.Label, Station: w.Station, X: w.X, Y: w.Y,
 				Orientation: w.Orientation, DrumCount: w.DrumCount,
+				DriveType: w.DriveType, LabelAuto: w.LabelAuto,
 			})
 		}
 		for _, st := range in.Body.Storage {
@@ -107,6 +108,8 @@ type winchBody struct {
 	Y           float64 `json:"y"`
 	Orientation int     `json:"orientation" enum:"0,45,-45,90,-90"`
 	DrumCount   int     `json:"drum_count" minimum:"1" maximum:"6"`
+	DriveType   string  `json:"drive_type,omitempty" enum:"electric,hydraulic"`
+	LabelAuto   bool    `json:"label_auto,omitempty"`
 }
 
 type storageBody struct {

@@ -52,7 +52,7 @@ func (s *Store) GetLayout(ctx context.Context, vesselID string) (Layout, error) 
 
 	// winches
 	wr, err := s.Pool.Query(ctx, `
-SELECT id, label, station, x, y, orientation, drum_count
+SELECT id, label, station, x, y, orientation, drum_count, drive_type, label_auto
 FROM winch_location WHERE vessel_id=$1 ORDER BY station, label`, vesselID)
 	if err != nil {
 		return out, err
@@ -60,7 +60,7 @@ FROM winch_location WHERE vessel_id=$1 ORDER BY station, label`, vesselID)
 	winchByID := map[string]*Winch{}
 	for wr.Next() {
 		var w Winch
-		if err := wr.Scan(&w.ID, &w.Label, &w.Station, &w.X, &w.Y, &w.Orientation, &w.DrumCount); err != nil {
+		if err := wr.Scan(&w.ID, &w.Label, &w.Station, &w.X, &w.Y, &w.Orientation, &w.DrumCount, &w.DriveType, &w.LabelAuto); err != nil {
 			wr.Close()
 			return out, err
 		}
@@ -165,6 +165,8 @@ type WinchInput struct {
 	X, Y        float64
 	Orientation int
 	DrumCount   int
+	DriveType   string
+	LabelAuto   bool
 }
 
 type StorageInput struct {
@@ -191,20 +193,23 @@ func (s *Store) SaveLayout(ctx context.Context, vesselID string, in SaveLayoutIn
 
 	keepWinch := map[string]bool{}
 	for _, w := range in.Winches {
+		if w.DriveType == "" {
+			w.DriveType = "electric"
+		}
 		id := w.ID
 		if id == "" {
 			id = newID()
 			if _, err := tx.Exec(ctx, `
-INSERT INTO winch_location (id, vessel_id, label, station, x, y, orientation, drum_count)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-				id, vesselID, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount); err != nil {
+INSERT INTO winch_location (id, vessel_id, label, station, x, y, orientation, drum_count, drive_type, label_auto)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+				id, vesselID, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, w.DriveType, w.LabelAuto); err != nil {
 				return err
 			}
 		} else {
 			if _, err := tx.Exec(ctx, `
-UPDATE winch_location SET label=$2, station=$3, x=$4, y=$5, orientation=$6, drum_count=$7
-WHERE id=$1 AND vessel_id=$8`,
-				id, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, vesselID); err != nil {
+UPDATE winch_location SET label=$2, station=$3, x=$4, y=$5, orientation=$6, drum_count=$7, drive_type=$8, label_auto=$9
+WHERE id=$1 AND vessel_id=$10`,
+				id, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, w.DriveType, w.LabelAuto, vesselID); err != nil {
 				return err
 			}
 		}

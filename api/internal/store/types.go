@@ -45,15 +45,17 @@ type Drum struct {
 }
 
 type Winch struct {
-	ID          string `json:"id"`
-	Label       string `json:"label"`
-	Station     string `json:"station"`
+	ID          string  `json:"id"`
+	Label       string  `json:"label"`
+	Station     string  `json:"station"`
 	X           float64 `json:"x"`
 	Y           float64 `json:"y"`
-	Orientation int    `json:"orientation"`
-	DrumCount   int    `json:"drum_count"`
-	WorstStatus string `json:"worst_status,omitempty"`
-	Drums       []Drum `json:"drums"`
+	Orientation int     `json:"orientation"`
+	DrumCount   int     `json:"drum_count"`
+	DriveType   string  `json:"drive_type"`
+	LabelAuto   bool    `json:"label_auto"`
+	WorstStatus string  `json:"worst_status,omitempty"`
+	Drums       []Drum  `json:"drums"`
 }
 
 type Storage struct {

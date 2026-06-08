@@ -1463,6 +1463,9 @@
       "Winch": {
         "additionalProperties": false,
         "properties": {
+          "drive_type": {
+            "type": "string"
+          },
           "drum_count": {
             "format": "int64",
             "type": "integer"
@@ -1481,6 +1484,9 @@
           },
           "label": {
             "type": "string"
+          },
+          "label_auto": {
+            "type": "boolean"
           },
           "orientation": {
             "format": "int64",
@@ -1509,6 +1515,8 @@
           "y",
           "orientation",
           "drum_count",
+          "drive_type",
+          "label_auto",
           "drums"
         ],
         "type": "object"
@@ -1516,6 +1524,13 @@
       "WinchBody": {
         "additionalProperties": false,
         "properties": {
+          "drive_type": {
+            "enum": [
+              "electric",
+              "hydraulic"
+            ],
+            "type": "string"
+          },
           "drum_count": {
             "format": "int64",
             "maximum": 6,
@@ -1528,6 +1543,9 @@
           "label": {
             "minLength": 1,
             "type": "string"
+          },
+          "label_auto": {
+            "type": "boolean"
           },
           "orientation": {
             "enum": [

@@ -919,11 +919,13 @@ export interface components {
             name: string;
         };
         Winch: {
+            drive_type: string;
             /** Format: int64 */
             drum_count: number;
             drums: components["schemas"]["Drum"][] | null;
             id: string;
             label: string;
+            label_auto: boolean;
             /** Format: int64 */
             orientation: number;
             station: string;
@@ -934,10 +936,13 @@ export interface components {
             y: number;
         };
         WinchBody: {
+            /** @enum {string} */
+            drive_type?: "electric" | "hydraulic";
             /** Format: int64 */
             drum_count: number;
             id?: string;
             label: string;
+            label_auto?: boolean;
             /**
              * Format: int64
              * @enum {integer}

@@ -62,6 +62,15 @@ export function WinchSymbol({
       })}
       {/* worst-case status dot (counter-rotated so it stays top-right visually) */}
       <circle cx={bw / 2 - 4} cy={-bh / 2 + 4} r={6} fill={dotColor(w.worst_status)} stroke="var(--bg)" strokeWidth={1.5} />
+      {/* drive-type marker, top-left: E electric / H hydraulic */}
+      <text
+        className="sym-drive"
+        x={-bw / 2 + 6}
+        y={-bh / 2 + 11}
+        transform={`rotate(${-w.orientation} ${-bw / 2 + 6} ${-bh / 2 + 7})`}
+      >
+        {w.drive_type === "hydraulic" ? "H" : "E"}
+      </text>
       <text className="sym-label" x={0} y={bh / 2 + 16} transform={`rotate(${-w.orientation})`}>{w.label}</text>
     </g>
   );

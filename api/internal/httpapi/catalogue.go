@@ -51,6 +51,22 @@ func registerCatalogue(api huma.API, s *Server) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "create-line-type", Method: http.MethodPost, Path: "/line-types",
+		Summary: "Create line type", Tags: tag, DefaultStatus: http.StatusCreated,
+	}, func(ctx context.Context, in *struct {
+		Body struct {
+			Name        string `json:"name" minLength:"1"`
+			Description string `json:"description,omitempty"`
+		}
+	}) (*struct{ Body store.LineType }, error) {
+		t, err := s.Store.CreateLineType(ctx, in.Body.Name, in.Body.Description)
+		if err != nil {
+			return nil, mapErr(err)
+		}
+		return &struct{ Body store.LineType }{Body: t}, nil
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "list-products", Method: http.MethodGet, Path: "/products",
 		Summary: "List products", Tags: tag,
 	}, func(ctx context.Context, in *struct {

@@ -65,7 +65,8 @@ export interface paths {
         /** List line types */
         get: operations["list-line-types"];
         put?: never;
-        post?: never;
+        /** Create line type */
+        post: operations["create-line-type"];
         delete?: never;
         options?: never;
         head?: never;
@@ -389,6 +390,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        "Create-line-typeRequest": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/Create-line-typeRequest.json
+             */
+            readonly $schema?: string;
+            description?: string;
+            name: string;
+        };
         "Create-makerRequest": {
             /**
              * Format: uri
@@ -765,6 +776,12 @@ export interface components {
             tag_number?: string;
         };
         LineType: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/LineType.json
+             */
+            readonly $schema?: string;
             description?: string;
             id: string;
             name: string;
@@ -1076,6 +1093,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LineType"][] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "create-line-type": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Create-line-typeRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LineType"];
                 };
             };
             /** @description Error */

@@ -4,6 +4,7 @@ import {
   useLineTypes,
   useProducts,
   useCreateMaker,
+  useCreateLineType,
   useCreateProduct,
   type CreateProductBody,
 } from "./api";
@@ -134,6 +135,23 @@ function MakersSection() {
 
 function LineTypesSection() {
   const { data: lineTypes, isLoading, isError } = useLineTypes();
+  const createLineType = useCreateLineType();
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+
+  const valid = name.trim().length > 0;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!valid) return;
+    await createLineType.mutateAsync({
+      name: name.trim(),
+      description: description.trim() || undefined,
+    });
+    setName("");
+    setDescription("");
+  };
 
   return (
     <section className="catalogue-section">
@@ -181,6 +199,39 @@ function LineTypesSection() {
             </tbody>
           </table>
         </div>
+
+        <form className="catalogue-inline-form" onSubmit={submit}>
+          <div className="field">
+            <label htmlFor="line-type-name">Name</label>
+            <input
+              id="line-type-name"
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Mooring tail"
+            />
+          </div>
+          <div className="field" style={{ flex: 1, minWidth: 200 }}>
+            <label htmlFor="line-type-desc">Description</label>
+            <input
+              id="line-type-desc"
+              className="input"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="optional"
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn"
+            disabled={!valid || createLineType.isPending}
+          >
+            {createLineType.isPending ? "Adding…" : "Add line type"}
+          </button>
+        </form>
+        {createLineType.isError && (
+          <div className="err">Could not add line type.</div>
+        )}
       </div>
     </section>
   );

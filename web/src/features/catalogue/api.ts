@@ -35,6 +35,11 @@ export interface CreateMakerBody {
   notes?: string;
 }
 
+export interface CreateLineTypeBody {
+  name: string;
+  description?: string;
+}
+
 export interface CreateProductBody {
   maker_id: string;
   line_type_id: string;
@@ -93,6 +98,16 @@ export function useCreateMaker() {
     mutationFn: (body: CreateMakerBody) => postJSON<Maker>("/makers", body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["catalogue", "makers"] });
+    },
+  });
+}
+
+export function useCreateLineType() {
+  const qc = useQueryClient();
+  return useMutation<LineType, Error, CreateLineTypeBody>({
+    mutationFn: (body: CreateLineTypeBody) => postJSON<LineType>("/line-types", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["catalogue", "line-types"] });
     },
   });
 }

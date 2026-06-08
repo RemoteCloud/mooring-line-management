@@ -35,6 +35,7 @@ func NewAPI(s *Server) (http.Handler, huma.API) {
 	api := humago.New(mux, cfg)
 
 	registerDocs(mux)
+	registerSwagger(mux)
 
 	// Cross-cutting: scope guard runs before feature handlers (registered as middleware).
 	api.UseMiddleware(ScopeMiddleware(api, s.Cfg))

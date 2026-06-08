@@ -64,6 +64,10 @@ export function AppShell() {
               <span className="nav-ico">⟨⟩</span>
               <span className="label">API docs</span>
             </a>
+            <a className="nav-link" href="/swagger" target="_blank" rel="noopener">
+              <span className="nav-ico">⬚</span>
+              <span className="label">Swagger</span>
+            </a>
           </nav>
         </aside>
 

@@ -26,7 +26,7 @@ export default defineConfig({
         // The SPA navigation fallback serves index.html for navigations; exclude the
         // server-rendered API reference + spec so they reach nginx/the API instead of
         // being hijacked into the app.
-        navigateFallbackDenylist: [/^\/docs(\/|$)/, /^\/openapi\./],
+        navigateFallbackDenylist: [/^\/docs(\/|$)/, /^\/swagger(\/|$)/, /^\/openapi\./],
         // Offline read access to line data and status (spec §6). API GETs are cached
         // stale-while-revalidate so deck views and the register work on deck offline.
         runtimeCaching: [
@@ -54,6 +54,7 @@ export default defineConfig({
       // Self-hosted API reference + spec, proxied to the API unchanged so
       // http://localhost:5173/docs works in dev too.
       "/docs": { target: process.env.VITE_API_BASE || "http://localhost:8080", changeOrigin: true },
+      "/swagger": { target: process.env.VITE_API_BASE || "http://localhost:8080", changeOrigin: true },
       "/openapi.json": { target: process.env.VITE_API_BASE || "http://localhost:8080", changeOrigin: true },
       "/openapi.yaml": { target: process.env.VITE_API_BASE || "http://localhost:8080", changeOrigin: true },
     },

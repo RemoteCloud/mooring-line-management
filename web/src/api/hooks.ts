@@ -168,6 +168,13 @@ export function useSaveLayout(vesselId: string) {
       if (error) throw error;
       return data as Layout;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["layout", vesselId] }),
+    // Seed the cache with the PUT's authoritative post-save layout so the deck
+    // shows newly added winches/storage immediately. Relying on an async
+    // invalidate→refetch leaves a window where the view falls back to the stale
+    // pre-save cache and the just-added symbol appears to vanish.
+    onSuccess: (data) => {
+      qc.setQueryData(["layout", vesselId], data);
+      qc.invalidateQueries({ queryKey: ["lines"] });
+    },
   });
 }

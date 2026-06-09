@@ -42,54 +42,57 @@ body {
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; }
 
-/* ---- App shell ---- */
-.shell { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100%; }
+/* ---- App shell: horizontal top nav (MARANICS format), dark theme ---- */
+.appframe { display: flex; flex-direction: column; min-height: 100%; }
 
-.sidebar {
+.appbar {
+  height: var(--topbar-h);
+  display: flex; align-items: center; gap: 18px;
+  padding: 0 18px;
   background: var(--bg-elev);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 10px;
+  border-top: 2px solid var(--accent);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
 }
-.brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; }
-.brand-mark {
-  width: 30px; height: 30px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
-  display: grid; place-items: center; font-weight: 700; color: #fff;
-}
-.brand-name { font-weight: 650; letter-spacing: 0.2px; }
-.brand-sub { font-size: 11px; color: var(--text-dim); }
 
-.nav-link {
-  display: flex; align-items: center; gap: 11px;
-  padding: 0 12px; min-height: var(--touch);
-  border-radius: var(--radius-sm); color: var(--text-dim);
-  font-weight: 520;
+.appbar-brand { display: flex; align-items: center; gap: 9px; flex: none; }
+.brand-mark {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  display: grid; place-items: center; font-weight: 700; color: #fff; font-size: 15px;
 }
-.nav-link:hover { background: var(--bg-elev-2); color: var(--text); }
-.nav-link.active { background: var(--accent-deep); color: #fff; }
+.brand-parent { font-weight: 720; letter-spacing: 0.4px; color: var(--text); }
+.brand-div { color: var(--border); font-weight: 400; }
+.brand-name { font-weight: 600; color: var(--text-dim); }
+
+/* Horizontal nav tabs: active state is an accent underline (survives grayscale). */
+.appbar-nav {
+  display: flex; align-items: stretch; gap: 2px;
+  height: 100%; min-width: 0; overflow-x: auto; scrollbar-width: none;
+}
+.appbar-nav::-webkit-scrollbar { display: none; }
+.topnav-link {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 12px; white-space: nowrap;
+  color: var(--text-dim); font-weight: 540;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.topnav-link:hover { color: var(--text); }
+.topnav-link.active { color: var(--text); border-bottom-color: var(--accent); }
+/* Text-only tabs (matches the reference); per-tab icons appear only when the bar
+   collapses to icon mode on narrow screens. */
+.topnav-link .nav-ico { display: none; }
 .nav-ico { width: 18px; text-align: center; opacity: 0.9; }
 
-.main { display: flex; flex-direction: column; min-width: 0; }
+.appbar-right { display: flex; align-items: center; gap: 10px; margin-left: auto; flex: none; }
 
-.topbar {
-  height: var(--topbar-h);
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in oklab, var(--bg-elev) 80%, transparent);
-  backdrop-filter: blur(6px);
-  display: flex; align-items: center; gap: 14px;
-  padding: 0 20px; position: sticky; top: 0; z-index: 10;
-}
 .search {
-  flex: 1; max-width: 460px;
+  width: 240px;
   display: flex; align-items: center; gap: 8px;
   background: var(--bg); border: 1px solid var(--border);
-  border-radius: 999px; padding: 0 14px; height: 40px;
+  border-radius: 999px; padding: 0 14px; height: 38px;
 }
-.search input { flex: 1; background: none; border: none; color: var(--text); outline: none; }
-.spacer { flex: 1; }
+.search input { flex: 1; min-width: 0; background: none; border: none; color: var(--text); outline: none; }
 
 .scope-badge {
   font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
@@ -98,12 +101,45 @@ button { font: inherit; cursor: pointer; }
 .scope-badge.onboard { color: var(--accent); border-color: var(--accent); }
 
 .vessel-switch {
-  height: 40px; min-width: 180px; padding: 0 12px;
+  height: 38px; min-width: 150px; padding: 0 12px;
   background: var(--bg-elev-2); border: 1px solid var(--border);
   border-radius: var(--radius-sm); color: var(--text);
 }
 
-.content { padding: 24px; max-width: 1400px; width: 100%; }
+/* Right-cluster icon buttons + avatar */
+.icon-btn {
+  width: 38px; height: 38px; flex: none;
+  display: grid; place-items: center;
+  background: none; border: 1px solid transparent; border-radius: var(--radius-sm);
+  color: var(--text-dim); font-size: 17px; cursor: pointer;
+}
+.icon-btn:hover { background: var(--bg-elev-2); color: var(--text); }
+.avatar {
+  width: 34px; height: 34px; flex: none; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--accent-deep); color: #fff;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+}
+
+/* App-grid popover */
+.grid-menu { position: relative; }
+.grid-menu-panel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 30;
+  min-width: 190px; padding: 6px;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+}
+.grid-menu-head {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-dim); padding: 6px 10px 4px;
+}
+.grid-menu-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 10px; border-radius: var(--radius-sm); color: var(--text);
+}
+.grid-menu-item:hover { background: var(--bg-elev-2); }
+
+.content { padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
 
 /* ---- Generic UI ---- */
 .page-title { font-size: 22px; font-weight: 680; margin: 0 0 4px; }
@@ -138,14 +174,23 @@ button { font: inherit; cursor: pointer; }
 }
 .stub h3 { color: var(--text); margin: 0 0 8px; }
 
-/* ---- Responsive: tablet portrait collapses the sidebar to icons ---- */
-@media (max-width: 1024px) {
-  :root { --sidebar-w: 64px; }
-  .brand-name, .brand-sub, .nav-link span.label { display: none; }
-  .nav-link { justify-content: center; padding: 0; }
+/* ---- Responsive: narrow screens wrap the top bar to two rows ---- */
+@media (max-width: 1380px) {
+  /* not enough room for 7 text tabs + controls → icon-only tabs (tooltip = label),
+     so every tab stays visible instead of scrolling out of view */
+  .topnav-link span.label { display: none; }
+  .topnav-link .nav-ico { display: inline; }
+  .topnav-link { padding: 0 11px; }
 }
-@media (max-width: 680px) {
-  .search { max-width: none; }
+@media (max-width: 860px) {
+  .appbar {
+    height: auto; flex-wrap: wrap; gap: 10px 14px; padding: 10px 14px;
+  }
+  .appbar-nav {
+    order: 3; flex-basis: 100%; height: 44px;
+    border-top: 1px solid var(--border); padding-top: 2px;
+  }
+  .appbar-right { gap: 8px; }
   .content { padding: 16px; }
 }
 

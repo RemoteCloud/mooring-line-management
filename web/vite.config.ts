@@ -23,6 +23,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Take control + drop the previous precache as soon as a new build's SW installs,
+        // so a redeploy reaches onboard tablets on the first reload instead of serving a
+        // stale app shell.
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
         // The SPA navigation fallback serves index.html for navigations; exclude the
         // server-rendered API reference + spec so they reach nginx/the API instead of
         // being hijacked into the app.

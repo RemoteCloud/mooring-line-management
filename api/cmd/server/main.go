@@ -82,6 +82,8 @@ func run(log *slog.Logger) error {
 	}
 	if st != nil {
 		defer st.Close()
+		// Outbound webhook dispatcher: polls the outbox and delivers to subscriptions.
+		go st.RunWebhookDispatcher(ctx, log)
 	}
 
 	handler, _ := httpapi.NewAPI(&httpapi.Server{Cfg: cfg, Store: st})

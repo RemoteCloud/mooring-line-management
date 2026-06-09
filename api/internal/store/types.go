@@ -62,6 +62,7 @@ type Storage struct {
 	ID          string  `json:"id"`
 	Label       string  `json:"label"`
 	Station     string  `json:"station"`
+	OnMap       bool    `json:"on_map"`
 	X           float64 `json:"x"`
 	Y           float64 `json:"y"`
 	LineCount   int     `json:"line_count"`

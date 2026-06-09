@@ -49,6 +49,7 @@ func NewAPI(s *Server) (http.Handler, huma.API) {
 	registerInspections(api, s)
 	registerFiles(api, s)
 	registerOverview(api, s)
+	registerWebhooks(api, s)
 
 	return mux, api
 }

@@ -1396,6 +1396,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "on_map": {
+            "type": "boolean"
+          },
           "station": {
             "type": "string"
           },
@@ -1415,6 +1418,7 @@
           "id",
           "label",
           "station",
+          "on_map",
           "x",
           "y",
           "line_count"
@@ -1431,11 +1435,10 @@
             "minLength": 1,
             "type": "string"
           },
+          "on_map": {
+            "type": "boolean"
+          },
           "station": {
-            "enum": [
-              "fwd",
-              "aft"
-            ],
             "type": "string"
           },
           "x": {
@@ -1449,9 +1452,29 @@
         },
         "required": [
           "label",
-          "station",
           "x",
           "y"
+        ],
+        "type": "object"
+      },
+      "Test-webhookResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Test-webhookResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
         ],
         "type": "object"
       },
@@ -1498,6 +1521,154 @@
         "required": [
           "id",
           "name"
+        ],
+        "type": "object"
+      },
+      "WebhookBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/WebhookBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "events": {
+            "description": "Event types to deliver. Empty = all events.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Custom request headers. Values may use {{variable}} substitution.",
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "payload_template": {
+            "description": "Body template with {{variable}} substitution. Empty = default JSON envelope.",
+            "type": "string"
+          },
+          "secret": {
+            "description": "HMAC-SHA256 signing key. Leave empty on update to keep the current secret.",
+            "type": "string"
+          },
+          "url": {
+            "examples": [
+              "https://example.com/hooks/mooring"
+            ],
+            "format": "uri",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "WebhookEventInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "variables": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "description",
+          "variables"
+        ],
+        "type": "object"
+      },
+      "WebhookSubscription": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/WebhookSubscription.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "has_secret": {
+            "type": "boolean"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "payload_template": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "vessel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "events",
+          "headers",
+          "active",
+          "has_secret",
+          "created_at"
         ],
         "type": "object"
       },
@@ -3045,6 +3216,306 @@
         "summary": "Vessel dashboard overview (KPIs, condition, attention, trend)",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/webhook-events": {
+      "get": {
+        "operationId": "list-webhook-events",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookEventInfo"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List fireable webhook event types",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/webhooks": {
+      "get": {
+        "operationId": "list-webhooks",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "vessel_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookSubscription"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List webhook subscriptions",
+        "tags": [
+          "webhooks"
+        ]
+      },
+      "post": {
+        "operationId": "create-webhook",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "vessel_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create webhook subscription",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/webhooks/{id}": {
+      "delete": {
+        "operationId": "delete-webhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete webhook subscription",
+        "tags": [
+          "webhooks"
+        ]
+      },
+      "get": {
+        "operationId": "get-webhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get webhook subscription",
+        "tags": [
+          "webhooks"
+        ]
+      },
+      "put": {
+        "operationId": "update-webhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update webhook subscription",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/webhooks/{id}/test": {
+      "post": {
+        "operationId": "test-webhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Test-webhookResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Send a test delivery to a webhook",
+        "tags": [
+          "webhooks"
         ]
       }
     }

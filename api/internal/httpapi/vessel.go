@@ -85,8 +85,13 @@ func registerVessel(api huma.API, s *Server) {
 			})
 		}
 		for _, st := range in.Body.Storage {
+			onMap := st.OnMap == nil || *st.OnMap
+			station := st.Station
+			if !onMap {
+				station = "" // off-map areas are vessel-wide; ignore any station sent
+			}
 			input.Storage = append(input.Storage, store.StorageInput{
-				ID: st.ID, Label: st.Label, Station: st.Station, X: st.X, Y: st.Y,
+				ID: st.ID, Label: st.Label, Station: station, OnMap: onMap, X: st.X, Y: st.Y,
 			})
 		}
 		if err := s.Store.SaveLayout(ctx, vid, input); err != nil {
@@ -113,9 +118,14 @@ type winchBody struct {
 }
 
 type storageBody struct {
-	ID      string  `json:"id,omitempty"`
-	Label   string  `json:"label" minLength:"1"`
-	Station string  `json:"station" enum:"fwd,aft"`
-	X       float64 `json:"x"`
-	Y       float64 `json:"y"`
+	ID string `json:"id,omitempty"`
+	// Label is the area name. For on-map storage it sits under the deck box; for an
+	// off-map area it's the whole identity ("Under mooring deck").
+	Label string `json:"label" minLength:"1"`
+	// Station is fwd/aft for on-map storage; empty for vessel-wide off-map areas.
+	Station string `json:"station,omitempty"`
+	// OnMap defaults true (drawn on the deck plan); false = a text-only storage area.
+	OnMap *bool   `json:"on_map,omitempty"`
+	X     float64 `json:"x"`
+	Y     float64 `json:"y"`
 }

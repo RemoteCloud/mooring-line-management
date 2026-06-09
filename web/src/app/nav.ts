@@ -12,6 +12,7 @@ export const NAV: NavItem[] = [
   { to: "/logbook", label: "Log book", icon: "❏" },
   { to: "/files", label: "Files & certs", icon: "📄" },
   { to: "/catalogue", label: "Catalogue", icon: "⚙" },
+  { to: "/settings", label: "Settings", icon: "⚒" },
 ];
 
 export const visibleNav = () => NAV.filter((n) => !n.shoreOnly || isShore());

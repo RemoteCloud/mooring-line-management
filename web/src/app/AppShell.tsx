@@ -5,6 +5,25 @@ import { SCOPE } from "../config";
 import { VesselSwitcher } from "./VesselSwitcher";
 import { ConnBadge } from "./ConnBadge";
 import { VesselProvider } from "./VesselContext";
+import { getTheme, toggleTheme, type Theme } from "../lib/theme";
+
+// Light/dark switch. Theme lives on <html data-theme> (set pre-paint in index.html)
+// and persists to localStorage; this button just flips it.
+function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme>(() => getTheme());
+  const other = theme === "dark" ? "light" : "dark";
+  return (
+    <button
+      type="button"
+      className="icon-btn"
+      aria-label={`Switch to ${other} mode`}
+      title={`Switch to ${other} mode`}
+      onClick={() => setTheme(toggleTheme())}
+    >
+      {theme === "dark" ? "☀️" : "🌙"}
+    </button>
+  );
+}
 
 // Collapsed to an icon by default so the nav tabs keep their room; expands to a
 // full input on click and collapses again when empty/blurred or on Escape.
@@ -123,6 +142,7 @@ export function AppShell() {
             <span className={"scope-badge " + SCOPE}>{SCOPE.toUpperCase()}</span>
             <VesselSwitcher />
             <GridMenu />
+            <ThemeToggle />
             <button type="button" className="icon-btn" aria-label="Notifications" title="Notifications (none)">
               🔔
             </button>

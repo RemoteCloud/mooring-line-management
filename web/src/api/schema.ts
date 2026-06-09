@@ -386,6 +386,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhook-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List fireable webhook event types */
+        get: operations["list-webhook-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List webhook subscriptions */
+        get: operations["list-webhooks"];
+        put?: never;
+        /** Create webhook subscription */
+        post: operations["create-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get webhook subscription */
+        get: operations["get-webhook"];
+        /** Update webhook subscription */
+        put: operations["update-webhook"];
+        post?: never;
+        /** Delete webhook subscription */
+        delete: operations["delete-webhook"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test delivery to a webhook */
+        post: operations["test-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -504,7 +575,7 @@ export interface components {
             file_base64: string;
             file_name: string;
             /** @enum {string} */
-            kind?: "certificate" | "manual" | "guide";
+            kind?: "certificate" | "manual" | "guide" | "delivery";
         };
         "File-add-photoRequest": {
             /**
@@ -900,6 +971,7 @@ export interface components {
             label: string;
             /** Format: int64 */
             line_count: number;
+            on_map: boolean;
             station: string;
             worst_status?: string;
             /** Format: double */
@@ -910,12 +982,21 @@ export interface components {
         StorageBody: {
             id?: string;
             label: string;
-            /** @enum {string} */
-            station: "fwd" | "aft";
+            on_map?: boolean;
+            station?: string;
             /** Format: double */
             x: number;
             /** Format: double */
             y: number;
+        };
+        "Test-webhookResponse": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/Test-webhookResponse.json
+             */
+            readonly $schema?: string;
+            ok: boolean;
         };
         TurnBody: {
             /**
@@ -936,6 +1017,57 @@ export interface components {
             id: string;
             imo?: string;
             name: string;
+        };
+        WebhookBody: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/WebhookBody.json
+             */
+            readonly $schema?: string;
+            active?: boolean;
+            /** @description Event types to deliver. Empty = all events. */
+            events?: string[] | null;
+            /** @description Custom request headers. Values may use {{variable}} substitution. */
+            headers?: {
+                [key: string]: string;
+            };
+            name?: string;
+            /** @description Body template with {{variable}} substitution. Empty = default JSON envelope. */
+            payload_template?: string;
+            /** @description HMAC-SHA256 signing key. Leave empty on update to keep the current secret. */
+            secret?: string;
+            /**
+             * Format: uri
+             * @example https://example.com/hooks/mooring
+             */
+            url: string;
+        };
+        WebhookEventInfo: {
+            description: string;
+            type: string;
+            variables: string[] | null;
+        };
+        WebhookSubscription: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/WebhookSubscription.json
+             */
+            readonly $schema?: string;
+            active: boolean;
+            /** Format: date-time */
+            created_at: string;
+            events: string[] | null;
+            has_secret: boolean;
+            headers: {
+                [key: string]: string;
+            };
+            id: string;
+            name: string;
+            payload_template?: string;
+            url: string;
+            vessel_id?: string;
         };
         Winch: {
             drive_type: string;
@@ -1944,6 +2076,227 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Overview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "list-webhook-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookEventInfo"][] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "list-webhooks": {
+        parameters: {
+            query?: {
+                vessel_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscription"][] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "create-webhook": {
+        parameters: {
+            query?: {
+                vessel_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscription"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "get-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscription"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "update-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscription"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "delete-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "test-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Test-webhookResponse"];
                 };
             };
             /** @description Error */

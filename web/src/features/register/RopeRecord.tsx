@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useLine, type Line } from "../../api/hooks";
 import { StatusDot, CopyButton, LifecycleBadge } from "../../components/ui";
 import { ageLabel, dateLabel, condClass } from "../../lib/format";
@@ -12,14 +12,40 @@ type Tab = (typeof TABS)[number];
 
 export function RopeRecord() {
   const { id } = useParams();
-  const { data: l, isLoading } = useLine(id);
+  const navigate = useNavigate();
+  const { data: l, isLoading, isError, error } = useLine(id);
   const [tab, setTab] = useState<Tab>("Overview");
 
-  if (isLoading || !l) return <p className="muted">Loading rope record…</p>;
+  if (isLoading) return <p className="muted">Loading rope record…</p>;
+
+  if (isError || !l) {
+    const status = (error as { status?: number } | null)?.status;
+    return (
+      <div className="empty-state">
+        <Link to="/register" className="muted">← Register</Link>
+        <h1 className="page-title" style={{ marginTop: 10 }}>Rope record</h1>
+        <p className="muted">
+          {status === 404
+            ? "This rope record was not found — it may have been removed."
+            : "Failed to load this rope record. Check the connection and try again."}
+        </p>
+        <Link to="/register" className="btn">Back to register</Link>
+      </div>
+    );
+  }
+
+  const onDeck = Boolean(l.current_drum_id || l.current_storage_id);
 
   return (
     <>
-      <Link to="/register" className="muted">← Register</Link>
+      <div className="record-bar">
+        <Link to="/register" className="muted">← Register</Link>
+        {onDeck && (
+          <button type="button" className="btn" onClick={() => navigate(`/deck?line=${l.id}`)}>
+            ⚓ Show on deck map
+          </button>
+        )}
+      </div>
       <div className="record-head" style={{ marginTop: 10 }}>
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>

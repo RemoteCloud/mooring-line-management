@@ -95,16 +95,17 @@ WHERE w.vessel_id=$1 ORDER BY d.idx`, vesselID)
 	}
 	dr.Close()
 
-	// storage
+	// storage (on-map ordered first, then off-map text areas — both by label)
 	sr, err := s.Pool.Query(ctx, `
-SELECT id, label, station, x, y FROM storage_location WHERE vessel_id=$1 ORDER BY station, label`, vesselID)
+SELECT id, label, COALESCE(station,''), on_map, x, y FROM storage_location
+WHERE vessel_id=$1 ORDER BY on_map DESC, station, label`, vesselID)
 	if err != nil {
 		return out, err
 	}
 	storageByID := map[string]*Storage{}
 	for sr.Next() {
 		var st Storage
-		if err := sr.Scan(&st.ID, &st.Label, &st.Station, &st.X, &st.Y); err != nil {
+		if err := sr.Scan(&st.ID, &st.Label, &st.Station, &st.OnMap, &st.X, &st.Y); err != nil {
 			sr.Close()
 			return out, err
 		}
@@ -172,7 +173,8 @@ type WinchInput struct {
 type StorageInput struct {
 	ID      string
 	Label   string
-	Station string
+	Station string // "" for off-map areas (stored as NULL)
+	OnMap   bool
 	X, Y    float64
 }
 
@@ -249,14 +251,14 @@ SELECT EXISTS(SELECT 1 FROM mooring_line ml JOIN drum d ON d.id=ml.current_drum_
 		if id == "" {
 			id = newID()
 			if _, err := tx.Exec(ctx, `
-INSERT INTO storage_location (id, vessel_id, label, station, x, y) VALUES ($1,$2,$3,$4,$5,$6)`,
-				id, vesselID, st.Label, st.Station, st.X, st.Y); err != nil {
+INSERT INTO storage_location (id, vessel_id, label, station, on_map, x, y) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+				id, vesselID, st.Label, nullStr(st.Station), st.OnMap, st.X, st.Y); err != nil {
 				return err
 			}
 		} else {
 			if _, err := tx.Exec(ctx, `
-UPDATE storage_location SET label=$2, station=$3, x=$4, y=$5 WHERE id=$1 AND vessel_id=$6`,
-				id, st.Label, st.Station, st.X, st.Y, vesselID); err != nil {
+UPDATE storage_location SET label=$2, station=$3, on_map=$4, x=$5, y=$6 WHERE id=$1 AND vessel_id=$7`,
+				id, st.Label, nullStr(st.Station), st.OnMap, st.X, st.Y, vesselID); err != nil {
 				return err
 			}
 		}

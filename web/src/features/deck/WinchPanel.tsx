@@ -28,14 +28,16 @@ function isAssignable(l: LineRow): boolean {
 }
 
 export function WinchPanel({
-  winch, layout, lines, vesselId,
+  winch, layout, lines, vesselId, selectedDrumIdx, onSelectDrum,
 }: {
   winch: Winch;
   layout: Layout;
   lines: LineRow[];
   vesselId: string;
+  // 1-based drum index selected from this panel; glows the matching cell on the map.
+  selectedDrumIdx: number | null;
+  onSelectDrum: (idx: number) => void;
 }) {
-  const navigate = useNavigate();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const drums = [...(winch.drums ?? [])].sort((a, b) => a.idx - b.idx);
   const lineOnDrum = (drumId: string) => lines.find((l) => l.current_drum_id === drumId);
@@ -51,18 +53,19 @@ export function WinchPanel({
         {drums.map((d) => {
           const line = lineOnDrum(d.id);
           const label = `${winch.label} · D${d.idx}`;
+          const sel = selectedDrumIdx === d.idx;
           return (
-            <div key={d.id} className="drum-row">
+            <div key={d.id} className={"drum-row" + (sel ? " sel" : "")}>
               {line ? (
                 <>
-                  <div className="drum-head">
+                  <button className="drum-head drum-select" onClick={() => onSelectDrum(d.idx)} aria-pressed={sel}>
                     <span className="drum-tag">D{d.idx}</span>
-                    <button className="drum-line" onClick={() => navigate(`/lines/${line.id}`)}>
+                    <span className="drum-line">
                       <StatusDot condition={line.current_condition_status as never} />
                       <span className="drum-line-name">{line.name}</span>
                       <span className="muted drum-line-side">Side {line.current_side || "—"}</span>
-                    </button>
-                  </div>
+                    </span>
+                  </button>
                   <div className="drum-actions">
                     <button className="chip" onClick={() => setDialog({ kind: "move", line })}>Move</button>
                     <TurnChip line={line} />
@@ -71,10 +74,10 @@ export function WinchPanel({
                 </>
               ) : (
                 <>
-                  <div className="drum-head">
+                  <button className="drum-head drum-select" onClick={() => onSelectDrum(d.idx)} aria-pressed={sel}>
                     <span className="drum-tag">D{d.idx}</span>
                     <span className="muted drum-empty">empty</span>
-                  </div>
+                  </button>
                   <div className="drum-actions">
                     <button className="chip" onClick={() => setDialog({ kind: "assign", drumId: d.id, drumLabel: label })}>Assign</button>
                     <button className="chip" onClick={() => setDialog({ kind: "register", drumId: d.id, drumLabel: label })}>Register here</button>
@@ -204,7 +207,7 @@ function MovePicker({
           {targets.map((t) => (
             <button key={t.id} className="pick-row" disabled={move.isPending} onClick={() => go(t)}>
               <span>{t.label}</span>
-              <span className="muted">{t.kind === "drum" ? `Drum · ${t.station}` : `Storage · ${t.station}`}</span>
+              <span className="muted">{t.kind === "drum" ? `Drum · ${t.station}` : t.station ? `Storage · ${t.station}` : "Storage area"}</span>
             </button>
           ))}
         </div>

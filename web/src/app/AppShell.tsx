@@ -17,9 +17,16 @@ function UserMenu() {
           Read-only
         </span>
       )}
-      <span className="user-email" title={user.name || user.email}>
-        {user.email || user.name}
-      </span>
+      <div className="user-id">
+        <span className="user-email" title={user.name || user.email}>
+          {user.email || user.name}
+        </span>
+        {(user.positionName || user.positionId) && (
+          <span className="user-position">
+            {user.positionName || user.positionId}
+          </span>
+        )}
+      </div>
       <button className="btn ghost" onClick={() => void logout()}>
         Logout
       </button>
@@ -58,7 +65,7 @@ function Topbar() {
 
 export function AppShell() {
   const isAdmin = useIsAdmin();
-  // Admin-only items (Settings) are hidden from non-admins; scope filtering is
+  // Admin-only items (Permissions) are hidden from non-admins; scope filtering is
   // already handled by visibleNav().
   const navItems = visibleNav().filter((n) => !n.adminOnly || isAdmin);
   return (

@@ -250,6 +250,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	// in-app access grants key on.
 	groups := auth.ExtractGroups(claims)
 	positionID := auth.ExtractPositionID(claims)
+	positionName := firstString(claims, "position_name", "positionName")
 	if positionID != "" {
 		groups = append(groups, positionID)
 	}
@@ -263,7 +264,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		"group_count", len(groups),
 		"is_admin", isAdmin)
 
-	user, err := s.Store.UpsertUserByOIDC(ctx, sub, email, name, groups, isAdmin)
+	user, err := s.Store.UpsertUserByOIDC(ctx, sub, email, name, positionID, positionName, groups, isAdmin)
 	if err != nil {
 		slog.Error("upsert user", "err", err)
 		s.redirectAuthError(w, r, "user_store_failed")
@@ -319,10 +320,12 @@ func (s *Server) redirectAuthError(w http.ResponseWriter, r *http.Request, reaso
 // --- /auth/session (Huma JSON endpoint) -----------------------------------
 
 type sessionUser struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
-	Sub   string `json:"sub"`
+	ID           string `json:"id"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	Sub          string `json:"sub"`
+	PositionID   string `json:"positionId"`
+	PositionName string `json:"positionName"`
 }
 
 type SessionOutput struct {
@@ -349,7 +352,10 @@ func registerSession(api huma.API, s *Server) {
 			return out, huma.Error401Unauthorized("not authenticated")
 		}
 		out.Body.Authenticated = true
-		out.Body.User = &sessionUser{ID: u.ID, Email: u.Email, Name: u.Name, Sub: u.OIDCSub}
+		out.Body.User = &sessionUser{
+			ID: u.ID, Email: u.Email, Name: u.Name, Sub: u.OIDCSub,
+			PositionID: u.PositionID, PositionName: u.PositionName,
+		}
 		out.Body.Groups = u.Groups
 		// Permissions were resolved (per request) by the auth middleware and
 		// attached to the context. Fall back to a fresh resolve if missing.

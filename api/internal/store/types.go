@@ -6,13 +6,15 @@ import "time"
 
 // User is an application user backed by an external OIDC identity.
 type User struct {
-	ID          string     `json:"id"`
-	Email       string     `json:"email"`
-	Name        string     `json:"name"`
-	OIDCSub     string     `json:"sub"`
-	Groups      []string   `json:"groups"`
-	IsAdmin     bool       `json:"is_admin"`
-	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
+	ID           string     `json:"id"`
+	Email        string     `json:"email"`
+	Name         string     `json:"name"`
+	OIDCSub      string     `json:"sub"`
+	Groups       []string   `json:"groups"`
+	PositionID   string     `json:"position_id"`   // UserManagement position; drives admin
+	PositionName string     `json:"position_name"` // human label for the position
+	IsAdmin      bool       `json:"is_admin"`
+	LastLoginAt  *time.Time `json:"last_login_at,omitempty"`
 }
 
 // AuthSession is a server-side session row (tokens stored encrypted).

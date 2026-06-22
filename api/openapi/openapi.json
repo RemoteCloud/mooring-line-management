@@ -1572,6 +1572,12 @@
           "name": {
             "type": "string"
           },
+          "positionId": {
+            "type": "string"
+          },
+          "positionName": {
+            "type": "string"
+          },
           "sub": {
             "type": "string"
           }
@@ -1580,7 +1586,9 @@
           "id",
           "email",
           "name",
-          "sub"
+          "sub",
+          "positionId",
+          "positionName"
         ],
         "type": "object"
       },

@@ -42,7 +42,7 @@ func (s *Store) DeleteExpiredFlows(ctx context.Context, olderThan time.Time) err
 
 // UpsertUserByOIDC inserts or updates an app_user keyed by oidc_sub, returning the
 // stored user. Groups are persisted as a JSON array.
-func (s *Store) UpsertUserByOIDC(ctx context.Context, sub, email, name string, groups []string, isAdmin bool) (User, error) {
+func (s *Store) UpsertUserByOIDC(ctx context.Context, sub, email, name, positionID, positionName string, groups []string, isAdmin bool) (User, error) {
 	groupsJSON, err := json.Marshal(groups)
 	if err != nil {
 		return User{}, err
@@ -51,20 +51,22 @@ func (s *Store) UpsertUserByOIDC(ctx context.Context, sub, email, name string, g
 	var u User
 	var groupsRaw []byte
 	err = s.Pool.QueryRow(ctx, `
-INSERT INTO app_user (id, oidc_sub, email, name, role, groups, is_admin, active, origin, last_login_at)
-VALUES ($1, $2, $3, $4, NULL, $5, $6, true, 'oidc', now())
+INSERT INTO app_user (id, oidc_sub, email, name, role, groups, position_id, position_name, is_admin, active, origin, last_login_at)
+VALUES ($1, $2, $3, $4, NULL, $5, NULLIF($6,''), NULLIF($7,''), $8, true, 'oidc', now())
 ON CONFLICT (oidc_sub) DO UPDATE SET
     email         = EXCLUDED.email,
     name          = EXCLUDED.name,
     groups        = EXCLUDED.groups,
+    position_id   = EXCLUDED.position_id,
+    position_name = EXCLUDED.position_name,
     is_admin      = EXCLUDED.is_admin,
     active        = true,
     last_login_at = now(),
     updated_at    = now()
 RETURNING id, COALESCE(email,''), COALESCE(name,''), COALESCE(oidc_sub,''),
-          COALESCE(groups,'[]'), is_admin, last_login_at`,
-		id, sub, email, name, string(groupsJSON), isAdmin).
-		Scan(&u.ID, &u.Email, &u.Name, &u.OIDCSub, &groupsRaw, &u.IsAdmin, &u.LastLoginAt)
+          COALESCE(groups,'[]'), COALESCE(position_id,''), COALESCE(position_name,''), is_admin, last_login_at`,
+		id, sub, email, name, string(groupsJSON), positionID, positionName, isAdmin).
+		Scan(&u.ID, &u.Email, &u.Name, &u.OIDCSub, &groupsRaw, &u.PositionID, &u.PositionName, &u.IsAdmin, &u.LastLoginAt)
 	if err != nil {
 		return User{}, err
 	}
@@ -78,9 +80,9 @@ func (s *Store) GetUser(ctx context.Context, id string) (User, error) {
 	var groupsRaw []byte
 	err := s.Pool.QueryRow(ctx, `
 SELECT id, COALESCE(email,''), COALESCE(name,''), COALESCE(oidc_sub,''),
-       COALESCE(groups,'[]'), is_admin, last_login_at
+       COALESCE(groups,'[]'), COALESCE(position_id,''), COALESCE(position_name,''), is_admin, last_login_at
 FROM app_user WHERE id = $1`, id).
-		Scan(&u.ID, &u.Email, &u.Name, &u.OIDCSub, &groupsRaw, &u.IsAdmin, &u.LastLoginAt)
+		Scan(&u.ID, &u.Email, &u.Name, &u.OIDCSub, &groupsRaw, &u.PositionID, &u.PositionName, &u.IsAdmin, &u.LastLoginAt)
 	if err != nil {
 		return User{}, err
 	}

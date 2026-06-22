@@ -9,6 +9,8 @@ export type AuthUser = {
   email: string;
   name: string;
   sub: string;
+  positionId: string;
+  positionName: string;
 };
 
 export type AccessLevel = "denied" | "view" | "edit";
@@ -59,7 +61,7 @@ export function useCanWrite(): boolean {
   return useAuth().permissions.canWrite;
 }
 
-// Convenience hook for admin-gating (settings / access control).
+// Convenience hook for admin-gating (permissions / access control).
 export function useIsAdmin(): boolean {
   return useAuth().permissions.admin;
 }

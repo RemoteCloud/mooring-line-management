@@ -4,6 +4,41 @@
  */
 
 export interface paths {
+    "/access/grants/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Grant or update a group's access level (admin only) */
+        put: operations["put-access-grant"];
+        post?: never;
+        /** Revoke a group's access (admin only) */
+        delete: operations["delete-access-grant"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List groups and their access levels (admin only) */
+        get: operations["list-access-groups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/session": {
         parameters: {
             query?: never;
@@ -407,6 +442,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccessGroup: {
+            groupId: string;
+            label: string;
+            level: string;
+            /** Format: int64 */
+            userCount: number;
+        };
         "Create-line-typeRequest": {
             /**
              * Format: uri
@@ -579,6 +621,20 @@ export interface components {
             /** Format: date-time */
             taken_at?: string;
             url?: string;
+        };
+        GroupAccess: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/GroupAccess.json
+             */
+            readonly $schema?: string;
+            groupId: string;
+            label: string;
+            level: string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
         };
         HealthOutputBody: {
             /**
@@ -803,6 +859,15 @@ export interface components {
             id: string;
             name: string;
         };
+        "List-access-groupsResponse": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/List-access-groupsResponse.json
+             */
+            readonly $schema?: string;
+            groups: components["schemas"]["AccessGroup"][] | null;
+        };
         "List-linesResponse": {
             /**
              * Format: uri
@@ -884,7 +949,9 @@ export interface components {
         };
         Permissions: {
             admin: boolean;
+            canRead: boolean;
             canWrite: boolean;
+            level: string;
         };
         Product: {
             /**
@@ -905,6 +972,17 @@ export interface components {
             manufacturer_manual_ref?: string;
             notes?: string;
             product_name: string;
+        };
+        "Put-access-grantRequest": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/Put-access-grantRequest.json
+             */
+            readonly $schema?: string;
+            label?: string;
+            /** @enum {string} */
+            level: "view" | "edit";
         };
         "Save-layoutRequest": {
             /**
@@ -932,6 +1010,8 @@ export interface components {
             email: string;
             id: string;
             name: string;
+            positionId: string;
+            positionName: string;
             sub: string;
         };
         Storage: {
@@ -1022,6 +1102,99 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "put-access-grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Put-access-grantRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupAccess"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "delete-access-grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "list-access-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["List-access-groupsResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
     "auth-session": {
         parameters: {
             query?: never;

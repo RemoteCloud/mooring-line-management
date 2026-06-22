@@ -1,7 +1,13 @@
-# Mooring Line Management — Implementation Plan
+# Mooring Line Management — Architecture & Implementation Plan
 
-**Stack:** Go backend (spec-first OpenAPI 3.1) · PostgreSQL · React/TS PWA · S3-compatible object storage.
+**Stack:** Go backend (code-first OpenAPI 3.1) · PostgreSQL · React/TS PWA · S3-compatible object storage.
 **Deployments:** one binary, two scopes (onboard single-vessel / shore fleet), set by config. Async outbox sync between them.
+
+> This document is the original design/build-sequencing plan, kept as the canonical
+> architecture reference. A few decisions have since shifted in implementation —
+> notably **auth is now OIDC (not JWT/RBAC)** and **queries are hand-written pgx
+> (not sqlc)**. Those points are annotated inline below. For the auth design as
+> built, see [authentication.md](authentication.md).
 
 ---
 
@@ -11,10 +17,10 @@
 |---|---|---|
 | API framework + contract | **Huma v2** (code-first) | Emits **OpenAPI 3.1.0** natively from Go handlers+structs; built-in validation from struct tags. **De-risk (2026-06-07): spec-first via oapi-codegen AND ogen both fail on 3.1 `type:[x,"null"]` nullability** — they model `type` as scalar string. Code-first goes Go→3.1 (not 3.1→Go), sidestepping the parser. Verified: Huma emits 3.1.0, openapi-typescript consumes it cleanly, nullability flows via `*T` pointers. |
 | Router | Huma `humago` adapter over stdlib `net/http` mux | Huma is router-agnostic; stdlib mux keeps deps light (chi available if richer routing needed) |
-| DB queries | `sqlc` | Type-safe Go from raw SQL; proper FK/constraint SQL stays explicit |
+| DB queries | hand-written `pgx` *(plan said `sqlc`)* | The dynamic line-list filters and layout aggregates read clearer as explicit SQL; same intent (typed, migrations-based, no ad-hoc schema) without the extra codegen tool. |
 | Migrations | `golang-migrate` | Versioned `.sql` up/down; no ad-hoc schema edits |
 | Validation | generated from OpenAPI + domain guards | Request shape from spec; business rules in domain layer |
-| Auth | JWT + RBAC middleware | 3 roles (§8) |
+| Auth | OIDC Backend-for-Frontend + group-based authz *(plan said JWT + RBAC)* | External IdP (Maranics UserManagement); tokens stay server-side, browser holds an opaque session cookie. `admin` group = read+write, any other authenticated user = read-only. See [authentication.md](authentication.md). |
 | Object storage | `aws-sdk-go-v2` (S3) / MinIO local | Certs, manuals, photos; DB holds refs only |
 | Webhooks | outbox + dispatcher worker, HMAC-SHA256 | Signed, retryable |
 | Sync | outbox/event replication worker | Append-only ops; tolerant of long offline gaps |
@@ -31,11 +37,11 @@ mooring-line-management/
 ├── api/
 │   ├── cmd/server/main.go           # boots HTTP + workers, reads SCOPE/VESSEL_ID
 │   ├── internal/
-│   │   ├── config/                  # SCOPE=onboard|shore, VESSEL_ID, DB, S3, JWT
+│   │   ├── config/                  # SCOPE=onboard|shore, VESSEL_ID, DB, S3, OIDC
 │   │   ├── domain/                  # entities + rules: turning, side accrual, due calcs
-│   │   ├── store/                   # sqlc gen + repo wrappers, tx helpers
-│   │   ├── httpapi/                 # Huma handlers (input/output structs + Register fns)
-│   │   ├── auth/                    # JWT issue/verify, RBAC middleware, scope guard
+│   │   ├── store/                   # pgx repo wrappers, tx helpers (auth.go: users/sessions/flows)
+│   │   ├── httpapi/                 # Huma handlers (input/output structs + Register fns); auth.go + authmw.go
+│   │   ├── auth/                    # OIDC client (oidc.go), token-at-rest crypto (crypto.go), groups→perms (groups.go)
 │   │   ├── storage/                 # S3 client (put/get/presign)
 │   │   ├── webhook/                 # subscriptions, HMAC sign, dispatcher
 │   │   ├── sync/                    # outbox writer, push/pull worker, conflict rule
@@ -81,7 +87,7 @@ mooring-line-management/
 - **Shore → onboard:** shore has its own master-data outbox (catalogue, vessel setup); onboard pulls and applies. Shore authoritative for master.
 - Conflict-free by partition: ops are append-only + vessel-owned (onboard wins); master is shore-owned (shore wins).
 - Neither side blocks on the other; tolerant of long gaps (cursor/watermark per peer).
-- **`app_user` placement:** users are **shore-owned master data** (authored centrally, pushed down) so RBAC is consistent fleet-wide and shore wins on conflict. BUT rows must replicate to onboard so crew can authenticate while disconnected at sea (hard constraint §2a). Onboard treats users read-mostly (local password/token cache works offline); user *creation/role changes* happen on shore and sync down. Onboard-side emergency user provisioning = open Q if NCL needs it.
+- **`app_user` placement:** users authenticate against the external OIDC provider; `app_user` rows are now an upsert-on-login projection of the IdP identity (`oidc_sub`, email, name, groups, `is_admin`), not a local password store — the legacy `password_hash` column was dropped in migration `0008_auth`. Permissions derive from OIDC group claims at request time (`admin` group ⇒ write). Open Q: offline/at-sea authentication onboard — the current BFF flow needs reachability to the IdP at login, so a disconnected-vessel story (cached sessions or an onboard token cache) is still to be designed.
 
 ---
 
@@ -127,7 +133,7 @@ Frontend tracks each slice; React Query hooks generated from spec.
 - Condition scale: assume Good/Monitor/Action (enum, mappable later).
 - Serial uniqueness: assume fleet-wide (easy to relax to per-vessel).
 - Connectivity/offline-gap profile → sync watermark tuning.
-- Auth source: standalone users v1, SSO later (keep auth boundary clean).
+- ~~Auth source: standalone users v1, SSO later~~ → **resolved:** OIDC SSO against the Maranics provider, Backend-for-Frontend. See [authentication.md](authentication.md).
 - AMOS integration: later (P2) — keep integration boundary clean.
 
 ---

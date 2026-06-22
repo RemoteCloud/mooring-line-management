@@ -123,6 +123,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	verifier := auth.GenerateVerifier()
 	challenge := auth.S256Challenge(verifier)
 
+	slog.Info("auth login start", "return_to", returnTo, "redirect_uri", s.Cfg.OIDCRedirectURI)
+
 	if err := s.Store.CreateFlow(r.Context(), storeFlow(state, verifier, nonce, returnTo)); err != nil {
 		slog.Error("persist oidc flow", "err", err)
 		http.Error(w, "failed to start login", http.StatusInternalServerError)
@@ -146,6 +148,11 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	q := r.URL.Query()
+
+	slog.Info("auth callback hit",
+		"has_code", q.Get("code") != "",
+		"has_state", q.Get("state") != "",
+		"error_param", q.Get("error"))
 
 	if errParam := q.Get("error"); errParam != "" {
 		s.redirectAuthError(w, r, errParam)

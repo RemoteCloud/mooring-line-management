@@ -23,11 +23,20 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Never serve the SPA shell (navigateFallback) for /api/* navigations —
+        // otherwise full-page navigations like /api/auth/login are intercepted by
+        // the service worker and answered with index.html instead of reaching the
+        // backend, which breaks the OIDC redirect flow (endless login loop).
+        navigateFallbackDenylist: [/^\/api\//],
         // Offline read access to line data and status (spec §6). API GETs are cached
         // stale-while-revalidate so deck views and the register work on deck offline.
+        // Auth endpoints (/api/auth/*) are EXCLUDED — session/login/callback must
+        // always hit the network, never be served from cache.
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith("/api/") &&
+              !url.pathname.startsWith("/api/auth/"),
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "api-read",

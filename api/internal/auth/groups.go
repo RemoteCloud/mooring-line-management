@@ -28,10 +28,35 @@ type Permissions struct {
 	CanWrite bool   `json:"canWrite"`
 }
 
-// groupClaimKeys are the claim names the provider may use to convey group/role
-// membership. The `roles` scope is requested; different providers surface it
-// under different keys, so we check all of them defensively.
-var groupClaimKeys = []string{"roles", "groups", "role", "wids"}
+// groupClaimKeys are the claim names the provider may use to convey group/team/
+// role membership. Maranics UserManagement exposes the user's POSITION TEAMS in
+// userinfo (the reference app reads `position_team_ids`); other providers surface
+// roles under different keys, so we check all of them defensively. These are the
+// ids that the in-app access grants are keyed on.
+var groupClaimKeys = []string{
+	"position_team_ids", "positionTeamIds", "position_teams",
+	"roles", "groups", "role", "wids",
+}
+
+// positionIDKeys are the claim names that may carry the user's single
+// UserManagement POSITION id. Admin is derived from this id (matching the
+// reference app's `position_id` -> UM_ADMIN_POSITION_IDS check), NOT from the
+// team/role lists above.
+var positionIDKeys = []string{"position_id", "positionId", "position"}
+
+// ExtractPositionID returns the user's UserManagement position id from the
+// decoded claims, or "" if none is present. Lowercased for comparison with the
+// configured admin position ids.
+func ExtractPositionID(claims map[string]any) string {
+	for _, k := range positionIDKeys {
+		if s, ok := claims[k].(string); ok {
+			if s = strings.ToLower(strings.TrimSpace(s)); s != "" {
+				return s
+			}
+		}
+	}
+	return ""
+}
 
 // ExtractGroups pulls group/role membership from a decoded claims map. Values may
 // arrive as a JSON array (["a","b"]) or a CSV/space-separated string ("a,b").

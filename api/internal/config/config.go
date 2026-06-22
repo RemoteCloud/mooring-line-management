@@ -43,9 +43,10 @@ type Config struct {
 	OIDCRedirectURI  string
 	OIDCScopes       string // space-separated scope list
 	OIDCPrompt       string // e.g. "login"
-	// OIDCAdminGroups is the set of group ids (GUIDs or names) that grant admin
-	// (read+write everywhere). Configured via OIDC_ADMIN_GROUP as a comma-
-	// separated list — mirrors the reference app's UM_ADMIN_POSITION_IDS.
+	// OIDCAdminGroups is the set of UserManagement position ids that grant admin
+	// (read+write everywhere, plus access-control management). Compared against the
+	// user's `position_id` claim from /userinfo. Configured via OIDC_ADMIN_GROUP as
+	// a comma-separated list — mirrors the reference app's UM_ADMIN_POSITION_IDS.
 	OIDCAdminGroups []string
 
 	// SessionSecret is a server secret; in dev it doubles as the source for the
@@ -65,6 +66,11 @@ type Config struct {
 
 // DefaultOIDCIssuer is the confirmed nightly provider issuer.
 const DefaultOIDCIssuer = "https://administration.cloud.maranics-nightly.com/nightly"
+
+// DefaultAdminPositionID is the seeded UserManagement "Admin" position GUID
+// (same default as the reference app's UM_ADMIN_POSITION_IDS). Members holding
+// this position are admins out of the box; override via OIDC_ADMIN_GROUP.
+const DefaultAdminPositionID = "0ee848c0-3469-4561-99ad-623d8eb87a7d"
 
 // Load reads configuration from the environment and validates invariants.
 func Load() (*Config, error) {
@@ -86,7 +92,7 @@ func Load() (*Config, error) {
 		OIDCRedirectURI:  getenv("OIDC_REDIRECT_URI", "http://localhost:8091/api/auth/callback"),
 		OIDCScopes:       getenv("OIDC_SCOPES", "openid email profile roles offline_access"),
 		OIDCPrompt:       getenv("OIDC_PROMPT", "login"),
-		OIDCAdminGroups:  splitCSVLower(getenv("OIDC_ADMIN_GROUP", "admin")),
+		OIDCAdminGroups:  splitCSVLower(getenv("OIDC_ADMIN_GROUP", DefaultAdminPositionID)),
 		SessionSecret:    os.Getenv("SESSION_SECRET"),
 		TokenEncKey:      os.Getenv("TOKEN_ENC_KEY"),
 		AppBaseURL:       getenv("APP_BASE_URL", "http://localhost:8091"),

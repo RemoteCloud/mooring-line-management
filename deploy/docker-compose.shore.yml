@@ -47,7 +47,7 @@ services:
       OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-http://localhost:8091/api/auth/callback}
       OIDC_SCOPES: ${OIDC_SCOPES:-openid email profile roles offline_access}
       OIDC_PROMPT: ${OIDC_PROMPT:-login}
-      OIDC_ADMIN_GROUP: ${OIDC_ADMIN_GROUP:-admin}
+      OIDC_ADMIN_GROUP: ${OIDC_ADMIN_GROUP:-0ee848c0-3469-4561-99ad-623d8eb87a7d}
       SESSION_SECRET: ${SESSION_SECRET:-dev-session-secret-change-me}
       TOKEN_ENC_KEY: ${TOKEN_ENC_KEY:-}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8091}

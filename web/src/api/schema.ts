@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current session */
+        get: operations["auth-session"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -865,6 +882,10 @@ export interface components {
             spares: number;
             trend: components["schemas"]["OverTrendPoint"][] | null;
         };
+        Permissions: {
+            admin: boolean;
+            canWrite: boolean;
+        };
         Product: {
             /**
              * Format: uri
@@ -894,6 +915,24 @@ export interface components {
             readonly $schema?: string;
             storage: components["schemas"]["StorageBody"][] | null;
             winches: components["schemas"]["WinchBody"][] | null;
+        };
+        SessionOutputBody: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/SessionOutputBody.json
+             */
+            readonly $schema?: string;
+            authenticated: boolean;
+            groups?: string[] | null;
+            permissions?: components["schemas"]["Permissions"];
+            user?: components["schemas"]["SessionUser"];
+        };
+        SessionUser: {
+            email: string;
+            id: string;
+            name: string;
+            sub: string;
         };
         Storage: {
             id: string;
@@ -983,6 +1022,35 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "auth-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;

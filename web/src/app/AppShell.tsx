@@ -5,6 +5,27 @@ import { SCOPE } from "../config";
 import { VesselSwitcher } from "./VesselSwitcher";
 import { ConnBadge } from "./ConnBadge";
 import { VesselProvider } from "./VesselContext";
+import { useAuth } from "./auth/authContext";
+
+function UserMenu() {
+  const { user, permissions, logout } = useAuth();
+  if (!user) return null;
+  return (
+    <div className="user-menu">
+      {!permissions.canWrite && (
+        <span className="ro-badge" title="You have read-only access">
+          Read-only
+        </span>
+      )}
+      <span className="user-email" title={user.name || user.email}>
+        {user.email || user.name}
+      </span>
+      <button className="btn ghost" onClick={() => void logout()}>
+        Logout
+      </button>
+    </div>
+  );
+}
 
 function Topbar() {
   const navigate = useNavigate();
@@ -30,6 +51,7 @@ function Topbar() {
       <ConnBadge />
       <span className={"scope-badge " + SCOPE}>{SCOPE.toUpperCase()}</span>
       <VesselSwitcher />
+      <UserMenu />
     </header>
   );
 }

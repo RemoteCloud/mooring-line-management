@@ -40,7 +40,17 @@ services:
       S3_BUCKET: mooring
       S3_ACCESS_KEY: minioadmin
       S3_SECRET_KEY: minioadmin
-      JWT_SECRET: ${JWT_SECRET:-dev-insecure-change-me}
+      # --- OIDC auth (secrets pulled from host env / .env; non-secrets inline) ---
+      OIDC_ISSUER: ${OIDC_ISSUER:-https://administration.cloud.maranics-nightly.com/nightly}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-http://localhost:8091/api/auth/callback}
+      OIDC_SCOPES: ${OIDC_SCOPES:-openid email profile roles offline_access}
+      OIDC_PROMPT: ${OIDC_PROMPT:-login}
+      OIDC_ADMIN_GROUP: ${OIDC_ADMIN_GROUP:-admin}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-session-secret-change-me}
+      TOKEN_ENC_KEY: ${TOKEN_ENC_KEY:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8091}
     ports: ["8081:8080"]
     depends_on:
       db:

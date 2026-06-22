@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 
+	"github.com/ncl/mooring-api/internal/auth"
 	"github.com/ncl/mooring-api/internal/config"
 	"github.com/ncl/mooring-api/internal/store"
 )
@@ -15,6 +16,10 @@ import (
 type Server struct {
 	Cfg   *config.Config
 	Store *store.Store
+
+	// Auth + Cipher are nil for codegen (dump-openapi) but required to serve.
+	Auth   *auth.Authenticator
+	Cipher *auth.Cipher
 }
 
 // vessel resolves the effective vessel for a request: the configured vessel onboard
@@ -31,8 +36,14 @@ func NewAPI(s *Server) (http.Handler, huma.API) {
 	cfg.Info.Description = "Fleet-wide mooring line management. Same API runs onboard (single vessel) and shore (fleet); scope is configuration."
 	api := humago.New(mux, cfg)
 
-	// Cross-cutting: scope guard runs before feature handlers (registered as middleware).
+	// Cross-cutting middleware. Scope guard runs first; auth (authn + group authz)
+	// runs after it so onboard scoping is enforced before we touch sessions.
 	api.UseMiddleware(ScopeMiddleware(api, s.Cfg))
+	api.UseMiddleware(AuthMiddleware(api, s))
+
+	// Auth endpoints: raw mux handlers for redirect/cookie control + a Huma
+	// /auth/session JSON endpoint.
+	registerAuth(api, s, mux)
 
 	// Feature route registration (one per slice) goes here.
 	registerHealth(api, s)

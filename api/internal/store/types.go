@@ -2,6 +2,40 @@ package store
 
 import "time"
 
+// Auth --------------------------------------------------------------------
+
+// User is an application user backed by an external OIDC identity.
+type User struct {
+	ID          string     `json:"id"`
+	Email       string     `json:"email"`
+	Name        string     `json:"name"`
+	OIDCSub     string     `json:"sub"`
+	Groups      []string   `json:"groups"`
+	IsAdmin     bool       `json:"is_admin"`
+	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
+}
+
+// AuthSession is a server-side session row (tokens stored encrypted).
+type AuthSession struct {
+	SID             string
+	UserID          string
+	AccessTokenEnc  string
+	RefreshTokenEnc string
+	IDTokenEnc      string
+	AccessExpiresAt *time.Time
+	CreatedAt       time.Time
+	LastSeenAt      time.Time
+}
+
+// OIDCFlow is the short-lived state for an in-flight auth-code login.
+type OIDCFlow struct {
+	State        string
+	CodeVerifier string
+	Nonce        string
+	ReturnTo     string
+	CreatedAt    time.Time
+}
+
 // Catalogue ---------------------------------------------------------------
 
 type Maker struct {

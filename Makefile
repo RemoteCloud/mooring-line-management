@@ -32,10 +32,10 @@ seed: # load Norwegian Luna demo data (use RESET=1 to wipe first)
 	cd api && go run ./cmd/server seed $(if $(RESET),--reset,)
 
 seed-docker: # reseed inside the running onboard api container
-	docker compose -f deploy/docker-compose.onboard.yml exec -T api /server seed --reset
+	docker compose --env-file .env -f deploy/docker-compose.onboard.yml exec -T api /server seed --reset
 
 seed-docker-shore: # reseed inside the running shore api container
-	docker compose -f deploy/docker-compose.shore.yml exec -T api /server seed --reset
+	docker compose --env-file .env -f deploy/docker-compose.shore.yml exec -T api /server seed --reset
 
 openapi: # emit api/openapi/openapi.json (the 3.1 spec, deliverable 2)
 	cd api && go run ./cmd/server dump-openapi
@@ -44,13 +44,13 @@ gen-ts: openapi # regenerate frontend TS types from the emitted spec
 	cd web && npx --yes openapi-typescript@latest ../api/openapi/openapi.json -o src/api/schema.ts
 
 onboard-up: # bring up the onboard stack (db + minio + api)
-	docker compose -f deploy/docker-compose.onboard.yml up -d --build
+	docker compose --env-file .env -f deploy/docker-compose.onboard.yml up -d --build
 
 onboard-down:
-	docker compose -f deploy/docker-compose.onboard.yml down
+	docker compose --env-file .env -f deploy/docker-compose.onboard.yml down
 
 shore-up: # bring up the shore stack (db + minio + api)
-	docker compose -f deploy/docker-compose.shore.yml up -d --build
+	docker compose --env-file .env -f deploy/docker-compose.shore.yml up -d --build
 
 shore-down:
-	docker compose -f deploy/docker-compose.shore.yml down
+	docker compose --env-file .env -f deploy/docker-compose.shore.yml down

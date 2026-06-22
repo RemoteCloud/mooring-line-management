@@ -8,6 +8,8 @@ import {
   useCreateProduct,
   type CreateProductBody,
 } from "./api";
+import { WriteGuard } from "../../app/auth/WriteGuard";
+import { useCanWrite } from "../../app/auth/authContext";
 import "./catalogue.css";
 
 export function CataloguePage() {
@@ -30,6 +32,7 @@ export function CataloguePage() {
 function MakersSection() {
   const { data: makers, isLoading, isError } = useMakers();
   const createMaker = useCreateMaker();
+  const canWrite = useCanWrite();
 
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
@@ -118,7 +121,8 @@ function MakersSection() {
           <button
             type="submit"
             className="btn"
-            disabled={!valid || createMaker.isPending}
+            disabled={!valid || createMaker.isPending || !canWrite}
+            title={!canWrite ? "Read-only access" : undefined}
           >
             {createMaker.isPending ? "Adding…" : "Add maker"}
           </button>
@@ -248,9 +252,11 @@ function ProductsSection() {
       <div className="toolbar">
         <h2>Products</h2>
         <div className="grow" />
-        <button className="btn" onClick={() => setAddOpen(true)}>
-          + Add product
-        </button>
+        <WriteGuard>
+          <button className="btn" onClick={() => setAddOpen(true)}>
+            + Add product
+          </button>
+        </WriteGuard>
       </div>
 
       <div className="card">

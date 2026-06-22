@@ -18,6 +18,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
+
+	"github.com/ncl/mooring-api/internal/auth"
 	"github.com/ncl/mooring-api/internal/config"
 	"github.com/ncl/mooring-api/internal/dbmigrate"
 	"github.com/ncl/mooring-api/internal/httpapi"
@@ -26,6 +29,9 @@ import (
 )
 
 func main() {
+	// Load a .env file if present (dev convenience); ignore if absent.
+	_ = godotenv.Load()
+
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	if len(os.Args) > 1 {
@@ -62,9 +68,25 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	if err := cfg.ValidateServe(); err != nil {
+		return err
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Token-at-rest encryption key (AES-256-GCM).
+	encKey, derived, err := auth.ResolveEncKey(cfg.TokenEncKey, cfg.SessionSecret)
+	if err != nil {
+		return err
+	}
+	if derived {
+		log.Warn("TOKEN_ENC_KEY unset; deriving token encryption key from SESSION_SECRET (dev only — set TOKEN_ENC_KEY in production)")
+	}
+	cipher, err := auth.NewCipher(encKey)
+	if err != nil {
+		return err
+	}
 
 	if cfg.AutoMigrate {
 		if err := dbmigrate.Up(cfg.DatabaseURL); err != nil {
@@ -84,7 +106,13 @@ func run(log *slog.Logger) error {
 		defer st.Close()
 	}
 
-	handler, _ := httpapi.NewAPI(&httpapi.Server{Cfg: cfg, Store: st})
+	// OIDC discovery (fetches the provider's discovery doc + JWKS, cached).
+	authn, err := auth.NewAuthenticator(ctx, cfg)
+	if err != nil {
+		return err
+	}
+
+	handler, _ := httpapi.NewAPI(&httpapi.Server{Cfg: cfg, Store: st, Auth: authn, Cipher: cipher})
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

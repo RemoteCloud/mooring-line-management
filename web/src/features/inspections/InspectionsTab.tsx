@@ -3,6 +3,7 @@ import { StatusDot } from "../../components/ui";
 import { dateLabel } from "../../lib/format";
 import { useInspections } from "./api";
 import { LogInspectionDialog } from "./LogInspectionDialog";
+import { WriteGuard } from "../../app/auth/WriteGuard";
 import "./inspections.css";
 
 export function InspectionsTab({ lineId }: { lineId: string }) {
@@ -13,7 +14,9 @@ export function InspectionsTab({ lineId }: { lineId: string }) {
     <>
       <div className="insp-bar">
         <h3 style={{ margin: 0 }}>Inspections</h3>
-        <button className="btn" onClick={() => setOpen(true)}>Log inspection</button>
+        <WriteGuard>
+          <button className="btn" onClick={() => setOpen(true)}>Log inspection</button>
+        </WriteGuard>
       </div>
 
       {isLoading ? (

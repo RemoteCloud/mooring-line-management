@@ -1287,6 +1287,22 @@
         ],
         "type": "object"
       },
+      "Permissions": {
+        "additionalProperties": false,
+        "properties": {
+          "admin": {
+            "type": "boolean"
+          },
+          "canWrite": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "admin",
+          "canWrite"
+        ],
+        "type": "object"
+      },
       "Product": {
         "additionalProperties": false,
         "properties": {
@@ -1379,6 +1395,66 @@
         "required": [
           "winches",
           "storage"
+        ],
+        "type": "object"
+      },
+      "SessionOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SessionOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "authenticated": {
+            "type": "boolean"
+          },
+          "groups": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/Permissions"
+          },
+          "user": {
+            "$ref": "#/components/schemas/SessionUser"
+          }
+        },
+        "required": [
+          "authenticated"
+        ],
+        "type": "object"
+      },
+      "SessionUser": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sub": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "sub"
         ],
         "type": "object"
       },
@@ -1633,6 +1709,37 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/auth/session": {
+      "get": {
+        "operationId": "auth-session",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Current session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health",

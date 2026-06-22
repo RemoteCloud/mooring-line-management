@@ -8,11 +8,16 @@ import { DeckPage } from "../features/deck/DeckPage";
 import { InspectionsPage } from "../features/inspections/InspectionsPage";
 import { LogbookPage } from "../features/inspections/LogbookPage";
 import { CataloguePage } from "../features/catalogue/CataloguePage";
+import { RequireAuth } from "./auth/RequireAuth";
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <AppShell />,
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <Dashboard /> },
       { path: "deck", element: <DeckPage /> },

@@ -12,17 +12,12 @@
           },
           "name": {
             "type": "string"
-          },
-          "userCount": {
-            "format": "int64",
-            "type": "integer"
           }
         },
         "required": [
           "groupId",
           "name",
-          "level",
-          "userCount"
+          "level"
         ],
         "type": "object"
       },

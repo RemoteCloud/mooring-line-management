@@ -13,14 +13,13 @@ import (
 	"github.com/ncl/mooring-api/internal/store"
 )
 
-// accessGroup is one row in the admin access-control list: a group GUID, its
-// human name (resolved live from UserManagement; "" when unknown), its current
-// level ("denied" when no grant exists), and how many users carry the group.
+// accessGroup is one row in the admin access-control list: a group id, its human
+// name (resolved live from UserManagement; "" when unknown), and its current
+// level ("denied" when no grant exists).
 type accessGroup struct {
-	GroupID   string `json:"groupId"`
-	Name      string `json:"name"`
-	Level     string `json:"level"`
-	UserCount int    `json:"userCount"`
+	GroupID string `json:"groupId"`
+	Name    string `json:"name"`
+	Level   string `json:"level"`
 }
 
 // requireAdmin returns nil if the caller is admin, else a 403. Admin status is
@@ -55,57 +54,37 @@ func registerAccess(api huma.API, s *Server) {
 			return nil, err
 		}
 
-		seen, err := s.Store.GroupsSeen(ctx)
-		if err != nil {
-			return nil, mapErr(err)
-		}
 		grants, err := s.Store.ListGroupAccess(ctx)
 		if err != nil {
 			return nil, mapErr(err)
 		}
 
-		// Merge: every group id from either source. Grants supply the level;
-		// groups with no grant are "denied". userCount comes from GroupsSeen
-		// (0 if a grant exists for a group no user currently carries).
+		// The tenant's position teams (id + live name) are the source of truth for
+		// the manageable groups, resolved live from UserManagement using the
+		// admin's own access token (best-effort; mirrors the reference app).
 		byID := map[string]*accessGroup{}
-		for id, n := range seen {
-			byID[id] = &accessGroup{GroupID: id, Level: auth.LevelDenied, UserCount: n}
+		for id, name := range s.positionTeamNames(ctx) {
+			byID[strings.ToLower(id)] = &accessGroup{GroupID: strings.ToLower(id), Name: name, Level: auth.LevelDenied}
 		}
+		// Overlay grants. A grant for a group the live list didn't return is still
+		// shown (so an existing grant is never silently hidden), even un-named.
 		for _, g := range grants {
 			row, ok := byID[g.GroupID]
 			if !ok {
-				row = &accessGroup{GroupID: g.GroupID, UserCount: 0}
+				row = &accessGroup{GroupID: g.GroupID}
 				byID[g.GroupID] = row
 			}
 			row.Level = g.Level
 		}
 
-		// Resolve human names live from UserManagement using the admin's own
-		// access token (best-effort: on failure rows keep their GUIDs and the UI
-		// shows a "Reload" affordance). Mirrors the reference app.
-		for id, name := range s.positionTeamNames(ctx) {
-			if row, ok := byID[strings.ToLower(id)]; ok {
-				row.Name = name
-			}
-		}
-
-		// Only surface real, manageable groups: those with a resolved name, or
-		// those that already carry a grant. This hides un-nameable noise ids
-		// (legacy role/wids GUIDs, the admin position id) the user can't act on.
 		out := make([]accessGroup, 0, len(byID))
 		for _, g := range byID {
-			if g.Name == "" && g.Level == auth.LevelDenied {
-				continue
-			}
 			out = append(out, *g)
 		}
-		// Sort named groups first, then by userCount desc, then id for stability.
+		// Named groups first, then by id for stability.
 		sort.Slice(out, func(i, j int) bool {
 			if (out[i].Name == "") != (out[j].Name == "") {
 				return out[i].Name != ""
-			}
-			if out[i].UserCount != out[j].UserCount {
-				return out[i].UserCount > out[j].UserCount
 			}
 			return out[i].GroupID < out[j].GroupID
 		})

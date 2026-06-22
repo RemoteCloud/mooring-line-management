@@ -17,7 +17,6 @@ type GroupGrant = {
   groupId: string;
   name: string;
   level: AccessLevel;
-  userCount: number;
 };
 
 type GroupsResponse = { groups: GroupGrant[] };
@@ -133,7 +132,6 @@ function AccessControl() {
             <thead>
               <tr>
                 <th>Group</th>
-                <th>Users</th>
                 <th>Access level</th>
                 <th aria-label="Status" />
               </tr>
@@ -145,14 +143,14 @@ function AccessControl() {
 
               {isLoading && (
                 <tr>
-                  <td colSpan={4} className="muted access-empty">
+                  <td colSpan={3} className="muted access-empty">
                     Loading…
                   </td>
                 </tr>
               )}
               {loadError && !isLoading && (
                 <tr>
-                  <td colSpan={4} className="err access-empty">
+                  <td colSpan={3} className="err access-empty">
                     {loadError}{" "}
                     <button
                       type="button"
@@ -166,8 +164,9 @@ function AccessControl() {
               )}
               {!isLoading && !loadError && groups.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="muted access-empty">
-                    No groups found yet. Groups appear here once users sign in.
+                  <td colSpan={3} className="muted access-empty">
+                    No groups loaded. Use “Reload groups” to fetch them from
+                    UserManagement.
                   </td>
                 </tr>
               )}
@@ -216,7 +215,7 @@ function GroupRow({
       setJustSaved(true);
       window.setTimeout(() => setJustSaved(false), 1800);
     },
-    // Refetch to stay authoritative (userCount etc. may change server-side).
+    // Refetch to stay authoritative (levels may change server-side).
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: GROUPS_KEY });
     },
@@ -237,7 +236,6 @@ function GroupRow({
           <code className="access-gid">{group.groupId}</code>
         )}
       </td>
-      <td className="muted">{group.userCount}</td>
       <td>
         <select
           className="input"

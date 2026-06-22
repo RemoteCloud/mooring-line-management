@@ -203,28 +203,3 @@ func (s *Store) DeleteGroupAccess(ctx context.Context, groupID string) error {
 	return err
 }
 
-// GroupsSeen returns the distinct group ids observed across all users' groups
-// (a JSON array stored as text), with a count of users having each. Lets the
-// admin UI discover which group GUIDs actually exist. NULL/empty groups are
-// guarded against.
-func (s *Store) GroupsSeen(ctx context.Context) (map[string]int, error) {
-	rows, err := s.Pool.Query(ctx, `
-SELECT g, count(*)
-FROM app_user, jsonb_array_elements_text(NULLIF(groups,'')::jsonb) AS g
-WHERE groups IS NOT NULL AND groups <> '' AND groups <> '[]'
-GROUP BY g`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := map[string]int{}
-	for rows.Next() {
-		var id string
-		var n int
-		if err := rows.Scan(&id, &n); err != nil {
-			return nil, err
-		}
-		out[id] = n
-	}
-	return out, rows.Err()
-}

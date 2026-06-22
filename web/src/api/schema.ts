@@ -446,8 +446,6 @@ export interface components {
             groupId: string;
             level: string;
             name: string;
-            /** Format: int64 */
-            userCount: number;
         };
         "Create-line-typeRequest": {
             /**

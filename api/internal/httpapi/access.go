@@ -89,12 +89,21 @@ func registerAccess(api huma.API, s *Server) {
 			}
 		}
 
+		// Only surface real, manageable groups: those with a resolved name, or
+		// those that already carry a grant. This hides un-nameable noise ids
+		// (legacy role/wids GUIDs, the admin position id) the user can't act on.
 		out := make([]accessGroup, 0, len(byID))
 		for _, g := range byID {
+			if g.Name == "" && g.Level == auth.LevelDenied {
+				continue
+			}
 			out = append(out, *g)
 		}
-		// Sort by userCount desc, then groupId asc for stability.
+		// Sort named groups first, then by userCount desc, then id for stability.
 		sort.Slice(out, func(i, j int) bool {
+			if (out[i].Name == "") != (out[j].Name == "") {
+				return out[i].Name != ""
+			}
 			if out[i].UserCount != out[j].UserCount {
 				return out[i].UserCount > out[j].UserCount
 			}

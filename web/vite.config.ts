@@ -30,13 +30,15 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         // Offline read access to line data and status (spec §6). API GETs are cached
         // stale-while-revalidate so deck views and the register work on deck offline.
-        // Auth endpoints (/api/auth/*) are EXCLUDED — session/login/callback must
-        // always hit the network, never be served from cache.
+        // Auth (/api/auth/*) and admin access-control (/api/access/*) are EXCLUDED —
+        // session/login/callback and live permission config must always hit the
+        // network, never be served stale from cache.
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
               url.pathname.startsWith("/api/") &&
-              !url.pathname.startsWith("/api/auth/"),
+              !url.pathname.startsWith("/api/auth/") &&
+              !url.pathname.startsWith("/api/access/"),
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "api-read",

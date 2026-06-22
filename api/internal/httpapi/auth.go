@@ -246,16 +246,12 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 
 	// Maranics UserManagement conveys admin via the user's single POSITION id
 	// (from /userinfo), and per-team access via the position TEAM ids — matching
-	// the reference app. The position id is folded into the groups slice so it is
-	// both persisted and matched by the admin-id allowlist; team ids are what the
-	// in-app access grants key on.
+	// the reference app. groups holds only the team ids (what access grants key
+	// on); admin is the position id against the configured allowlist.
 	groups := auth.ExtractGroups(claims)
 	positionID := auth.ExtractPositionID(claims)
 	positionName := firstString(claims, "position_name", "positionName")
-	if positionID != "" {
-		groups = append(groups, positionID)
-	}
-	isAdmin := auth.IsAdmin(groups, s.Cfg.OIDCAdminGroups)
+	isAdmin := auth.IsAdmin([]string{positionID}, s.Cfg.OIDCAdminGroups)
 
 	// Log the resolved identity at info level: the position id is what an operator
 	// copies into OIDC_ADMIN_GROUP to grant admin, so it's worth surfacing.

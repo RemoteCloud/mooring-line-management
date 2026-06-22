@@ -28,15 +28,12 @@ type Permissions struct {
 	CanWrite bool   `json:"canWrite"`
 }
 
-// groupClaimKeys are the claim names the provider may use to convey group/team/
-// role membership. Maranics UserManagement exposes the user's POSITION TEAMS in
-// userinfo (the reference app reads `position_team_ids`); other providers surface
-// roles under different keys, so we check all of them defensively. These are the
-// ids that the in-app access grants are keyed on.
-var groupClaimKeys = []string{
-	"position_team_ids", "positionTeamIds", "position_teams",
-	"roles", "groups", "role", "wids",
-}
+// groupClaimKeys are the claim names that convey the user's POSITION TEAMS — the
+// only ids in-app access grants are keyed on (mirroring the reference app's
+// `position_team_ids`). We intentionally do NOT read roles/wids/etc.: those are
+// unrelated GUIDs that would pollute the access-control list with un-nameable,
+// un-grantable rows.
+var groupClaimKeys = []string{"position_team_ids", "positionTeamIds", "position_teams"}
 
 // positionIDKeys are the claim names that may carry the user's single
 // UserManagement POSITION id. Admin is derived from this id (matching the
@@ -154,7 +151,14 @@ func levelRank(level string) int {
 // groupId matches one of the user's groups (grants: groupId -> "view"|"edit").
 // No matching grant means "denied".
 func Resolve(user store.User, adminGroups []string, grants map[string]string) Permissions {
-	if IsAdmin(user.Groups, adminGroups) {
+	// Admin is driven by the user's UM position id (reference-faithful). The
+	// stored groups are also checked so sessions created before position_id was
+	// persisted (the id was folded into groups then) keep admin until re-login.
+	adminCandidates := user.Groups
+	if user.PositionID != "" {
+		adminCandidates = append(append([]string{}, user.Groups...), user.PositionID)
+	}
+	if IsAdmin(adminCandidates, adminGroups) {
 		return Permissions{Admin: true, Level: LevelEdit, CanRead: true, CanWrite: true}
 	}
 

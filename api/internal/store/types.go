@@ -36,6 +36,16 @@ type OIDCFlow struct {
 	CreatedAt    time.Time
 }
 
+// GroupAccess maps an OIDC group id (opaque GUID) to an access level. The
+// presence of a row grants access at Level ("view"|"edit"); absence = denied.
+type GroupAccess struct {
+	GroupID   string    `json:"groupId"`
+	Level     string    `json:"level"`
+	Label     string    `json:"label"`
+	UpdatedBy string    `json:"updatedBy"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
 // Catalogue ---------------------------------------------------------------
 
 type Maker struct {

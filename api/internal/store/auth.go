@@ -134,3 +134,96 @@ func (s *Store) DeleteSession(ctx context.Context, sid string) error {
 	_, err := s.Pool.Exec(ctx, `DELETE FROM auth_session WHERE sid = $1`, sid)
 	return err
 }
+
+// --- Group access control -------------------------------------------------
+
+// ListGroupAccess returns all group access grants, ordered by group id.
+func (s *Store) ListGroupAccess(ctx context.Context) ([]GroupAccess, error) {
+	rows, err := s.Pool.Query(ctx, `
+SELECT group_id, level, COALESCE(label,''), COALESCE(updated_by,''), updated_at
+FROM group_access
+ORDER BY group_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []GroupAccess
+	for rows.Next() {
+		var g GroupAccess
+		if err := rows.Scan(&g.GroupID, &g.Level, &g.Label, &g.UpdatedBy, &g.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
+
+// GrantsMap returns a groupId -> level map used by permission resolution.
+func (s *Store) GrantsMap(ctx context.Context) (map[string]string, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT group_id, level FROM group_access`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var id, level string
+		if err := rows.Scan(&id, &level); err != nil {
+			return nil, err
+		}
+		out[id] = level
+	}
+	return out, rows.Err()
+}
+
+// UpsertGroupAccess inserts or updates a grant for a group id.
+func (s *Store) UpsertGroupAccess(ctx context.Context, groupID, level, label, updatedBy string) (GroupAccess, error) {
+	var g GroupAccess
+	err := s.Pool.QueryRow(ctx, `
+INSERT INTO group_access (group_id, level, label, updated_by, updated_at)
+VALUES ($1, $2, NULLIF($3,''), NULLIF($4,''), now())
+ON CONFLICT (group_id) DO UPDATE SET
+    level      = EXCLUDED.level,
+    label      = EXCLUDED.label,
+    updated_by = EXCLUDED.updated_by,
+    updated_at = now()
+RETURNING group_id, level, COALESCE(label,''), COALESCE(updated_by,''), updated_at`,
+		groupID, level, label, updatedBy).
+		Scan(&g.GroupID, &g.Level, &g.Label, &g.UpdatedBy, &g.UpdatedAt)
+	if err != nil {
+		return GroupAccess{}, err
+	}
+	return g, nil
+}
+
+// DeleteGroupAccess removes a grant (reverting the group to denied).
+func (s *Store) DeleteGroupAccess(ctx context.Context, groupID string) error {
+	_, err := s.Pool.Exec(ctx, `DELETE FROM group_access WHERE group_id = $1`, groupID)
+	return err
+}
+
+// GroupsSeen returns the distinct group ids observed across all users' groups
+// (a JSON array stored as text), with a count of users having each. Lets the
+// admin UI discover which group GUIDs actually exist. NULL/empty groups are
+// guarded against.
+func (s *Store) GroupsSeen(ctx context.Context) (map[string]int, error) {
+	rows, err := s.Pool.Query(ctx, `
+SELECT g, count(*)
+FROM app_user, jsonb_array_elements_text(NULLIF(groups,'')::jsonb) AS g
+WHERE groups IS NOT NULL AND groups <> '' AND groups <> '[]'
+GROUP BY g`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]int{}
+	for rows.Next() {
+		var id string
+		var n int
+		if err := rows.Scan(&id, &n); err != nil {
+			return nil, err
+		}
+		out[id] = n
+	}
+	return out, rows.Err()
+}

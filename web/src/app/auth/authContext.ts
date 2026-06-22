@@ -11,8 +11,12 @@ export type AuthUser = {
   sub: string;
 };
 
+export type AccessLevel = "denied" | "view" | "edit";
+
 export type AuthPermissions = {
   admin: boolean;
+  level: AccessLevel;
+  canRead: boolean;
   canWrite: boolean;
 };
 
@@ -33,7 +37,12 @@ export type AuthState = {
   refresh: () => Promise<void>;
 };
 
-export const DEFAULT_PERMISSIONS: AuthPermissions = { admin: false, canWrite: false };
+export const DEFAULT_PERMISSIONS: AuthPermissions = {
+  admin: false,
+  level: "denied",
+  canRead: false,
+  canWrite: false,
+};
 
 export const AuthContext = createContext<AuthState | null>(null);
 
@@ -48,4 +57,14 @@ export function useAuth(): AuthState {
 // Convenience hook for permission-gating write actions across feature pages.
 export function useCanWrite(): boolean {
   return useAuth().permissions.canWrite;
+}
+
+// Convenience hook for admin-gating (settings / access control).
+export function useIsAdmin(): boolean {
+  return useAuth().permissions.admin;
+}
+
+// Convenience hook for reading the full permissions object.
+export function usePermissions(): AuthPermissions {
+  return useAuth().permissions;
 }

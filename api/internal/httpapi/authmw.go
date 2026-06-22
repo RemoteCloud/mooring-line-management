@@ -39,9 +39,10 @@ func isMutating(method string) bool {
 //
 //   - Public paths (/auth/*, /health) pass through untouched.
 //   - Unauthenticated requests to any other operation are rejected 401.
-//   - Authenticated non-admin users may read (GET/HEAD/OPTIONS) but mutating
-//     methods are rejected 403.
-//   - Admin users may do anything.
+//   - Authenticated users whose resolved level is "denied" are rejected 403 for
+//     ALL non-public operations (the SPA shows a "no access" screen).
+//   - "view" users may read (GET/HEAD); mutating methods are rejected 403.
+//   - "edit" users and admins may do anything.
 //
 // On success the user + permissions are attached to the request context for
 // downstream handlers. Runs AFTER ScopeMiddleware.
@@ -74,8 +75,15 @@ func AuthMiddleware(api huma.API, s *Server) func(huma.Context, func(huma.Contex
 			return
 		}
 
+		// No access level at all: reject every operation so the SPA can render a
+		// dedicated "no access" screen.
+		if !perms.CanRead {
+			huma.WriteErr(api, ctx, http.StatusForbidden, "no access: ask an administrator to grant your group access")
+			return
+		}
+
 		if isMutating(ctx.Method()) && !perms.CanWrite {
-			huma.WriteErr(api, ctx, http.StatusForbidden, "read-only: write access requires the admin group")
+			huma.WriteErr(api, ctx, http.StatusForbidden, "read-only: write access requires an 'edit' grant")
 			return
 		}
 
@@ -104,7 +112,13 @@ func (s *Server) resolveSession(ctx huma.Context) (store.User, auth.Permissions,
 	if err != nil {
 		return store.User{}, auth.Permissions{}, false
 	}
-	perms := auth.PermissionsFor(user.Groups, s.Cfg.OIDCAdminGroup)
+	// Load the group->level grants (one query) and resolve the effective
+	// permissions per request, so access changes take effect without re-login.
+	grants, err := s.Store.GrantsMap(ctx.Context())
+	if err != nil {
+		return store.User{}, auth.Permissions{}, false
+	}
+	perms := auth.Resolve(user, s.Cfg.OIDCAdminGroups, grants)
 	// Best-effort liveness touch; ignore errors.
 	_ = s.Store.TouchSession(ctx.Context(), sid)
 	return user, perms, true

@@ -43,7 +43,10 @@ type Config struct {
 	OIDCRedirectURI  string
 	OIDCScopes       string // space-separated scope list
 	OIDCPrompt       string // e.g. "login"
-	OIDCAdminGroup   string // group name that grants admin (read+write)
+	// OIDCAdminGroups is the set of group ids (GUIDs or names) that grant admin
+	// (read+write everywhere). Configured via OIDC_ADMIN_GROUP as a comma-
+	// separated list — mirrors the reference app's UM_ADMIN_POSITION_IDS.
+	OIDCAdminGroups []string
 
 	// SessionSecret is a server secret; in dev it doubles as the source for the
 	// token-encryption key when TokenEncKey is unset.
@@ -83,7 +86,7 @@ func Load() (*Config, error) {
 		OIDCRedirectURI:  getenv("OIDC_REDIRECT_URI", "http://localhost:8091/api/auth/callback"),
 		OIDCScopes:       getenv("OIDC_SCOPES", "openid email profile roles offline_access"),
 		OIDCPrompt:       getenv("OIDC_PROMPT", "login"),
-		OIDCAdminGroup:   getenv("OIDC_ADMIN_GROUP", "admin"),
+		OIDCAdminGroups:  splitCSVLower(getenv("OIDC_ADMIN_GROUP", "admin")),
 		SessionSecret:    os.Getenv("SESSION_SECRET"),
 		TokenEncKey:      os.Getenv("TOKEN_ENC_KEY"),
 		AppBaseURL:       getenv("APP_BASE_URL", "http://localhost:8091"),
@@ -130,4 +133,20 @@ func getenv(k, def string) string {
 		return v
 	}
 	return def
+}
+
+// splitCSVLower splits a comma-separated list into trimmed, lowercased,
+// non-empty values. Order is preserved; empties are dropped.
+func splitCSVLower(s string) []string {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	var out []string
+	for _, part := range strings.Split(s, ",") {
+		v := strings.ToLower(strings.TrimSpace(part))
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }

@@ -5,7 +5,7 @@ import { SCOPE } from "../config";
 import { VesselSwitcher } from "./VesselSwitcher";
 import { ConnBadge } from "./ConnBadge";
 import { VesselProvider } from "./VesselContext";
-import { useAuth } from "./auth/authContext";
+import { useAuth, useIsAdmin } from "./auth/authContext";
 
 function UserMenu() {
   const { user, permissions, logout } = useAuth();
@@ -57,6 +57,10 @@ function Topbar() {
 }
 
 export function AppShell() {
+  const isAdmin = useIsAdmin();
+  // Admin-only items (Settings) are hidden from non-admins; scope filtering is
+  // already handled by visibleNav().
+  const navItems = visibleNav().filter((n) => !n.adminOnly || isAdmin);
   return (
     <VesselProvider>
       <div className="shell">
@@ -69,7 +73,7 @@ export function AppShell() {
             </div>
           </div>
           <nav>
-            {visibleNav().map((n) => (
+            {navItems.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}

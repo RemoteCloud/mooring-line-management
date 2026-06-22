@@ -1,0 +1,53 @@
+/* Settings → Access control. Builds on the shared classes in styles.css. */
+
+.access-intro {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0 0 20px;
+  max-width: 720px;
+}
+
+/* Rows here are not navigable, so drop the table's default row pointer/hover. */
+table.grid.access-grid tbody tr.access-row {
+  cursor: default;
+}
+
+.access-grid td {
+  vertical-align: middle;
+}
+
+.access-gid {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.access-grid select.input {
+  min-width: 120px;
+}
+
+.access-label-input {
+  min-width: 200px;
+  width: 100%;
+}
+
+.access-status {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.access-saved {
+  color: var(--good);
+  font-weight: 600;
+}
+
+.access-empty {
+  text-align: center;
+  padding: 24px;
+}
+
+.access-retry {
+  height: 30px;
+  padding: 0 12px;
+  margin-left: 8px;
+}

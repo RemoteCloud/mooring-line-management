@@ -2,12 +2,30 @@ package auth
 
 import (
 	"strings"
+
+	"github.com/ncl/mooring-api/internal/store"
+)
+
+// Access levels, lowest to highest. denied = no access at all (the frontend
+// shows a "no access" screen); view = read-only; edit = read + write.
+const (
+	LevelDenied = "denied"
+	LevelView   = "view"
+	LevelEdit   = "edit"
 )
 
 // Permissions is the resolved access level for an authenticated user.
+//
+//   - Level is one of "denied" | "view" | "edit".
+//   - CanRead is true when Level != denied.
+//   - CanWrite is true when Level == edit.
+//   - Admin is true for members of a configured admin group (OIDC_ADMIN_GROUP,
+//     a set of group GUIDs); admins are always granted edit.
 type Permissions struct {
-	Admin    bool `json:"admin"`
-	CanWrite bool `json:"canWrite"`
+	Admin    bool   `json:"admin"`
+	Level    string `json:"level"`
+	CanRead  bool   `json:"canRead"`
+	CanWrite bool   `json:"canWrite"`
 }
 
 // groupClaimKeys are the claim names the provider may use to convey group/role
@@ -65,29 +83,86 @@ func splitlist(s string) []string {
 	})
 }
 
-// IsAdmin reports whether the admin group is present in the user's groups.
-// adminGroup is matched case-insensitively (groups are already lowercased).
-func IsAdmin(groups []string, adminGroup string) bool {
-	target := strings.ToLower(strings.TrimSpace(adminGroup))
-	if target == "" {
-		target = "admin"
+// IsAdmin reports whether any of the configured admin groups is present in the
+// user's groups. adminGroups is a set of group ids (GUIDs or names) configured
+// via OIDC_ADMIN_GROUP — mirroring the reference app's UM_ADMIN_POSITION_IDS.
+// Both sides are compared lowercased (groups are already lowercased).
+func IsAdmin(groups []string, adminGroups []string) bool {
+	if len(adminGroups) == 0 {
+		return false
+	}
+	admin := make(map[string]struct{}, len(adminGroups))
+	for _, a := range adminGroups {
+		a = strings.ToLower(strings.TrimSpace(a))
+		if a != "" {
+			admin[a] = struct{}{}
+		}
 	}
 	for _, g := range groups {
-		if g == target {
+		if _, ok := admin[g]; ok {
 			return true
 		}
 	}
 	return false
 }
 
-// CanWrite reports whether the user may perform mutations. For now write access
-// equals admin; any other authenticated user is read-only.
-func CanWrite(groups []string, adminGroup string) bool {
-	return IsAdmin(groups, adminGroup)
+// levelRank ranks access levels so the highest grant wins. Unknown levels rank
+// as denied.
+func levelRank(level string) int {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case LevelEdit:
+		return 2
+	case LevelView:
+		return 1
+	default:
+		return 0
+	}
 }
 
-// PermissionsFor resolves the permission set for a user's groups.
-func PermissionsFor(groups []string, adminGroup string) Permissions {
-	admin := IsAdmin(groups, adminGroup)
-	return Permissions{Admin: admin, CanWrite: admin}
+// Resolve computes the effective permissions for a user.
+//
+// A user is admin if any of their groups is in the configured adminGroups set
+// (OIDC_ADMIN_GROUP — group GUIDs, like the reference's UM_ADMIN_POSITION_IDS).
+// Admins always get edit.
+//
+// For non-admins the effective level is the HIGHEST level among the grants whose
+// groupId matches one of the user's groups (grants: groupId -> "view"|"edit").
+// No matching grant means "denied".
+func Resolve(user store.User, adminGroups []string, grants map[string]string) Permissions {
+	if IsAdmin(user.Groups, adminGroups) {
+		return Permissions{Admin: true, Level: LevelEdit, CanRead: true, CanWrite: true}
+	}
+
+	best := LevelDenied
+	bestRank := 0
+	for _, g := range user.Groups {
+		lvl, ok := grants[g]
+		if !ok {
+			continue
+		}
+		if r := levelRank(lvl); r > bestRank {
+			bestRank = r
+			best = strings.ToLower(strings.TrimSpace(lvl))
+		}
+	}
+
+	return permsForLevel(false, best)
+}
+
+// permsForLevel builds a Permissions from an admin flag + level string, deriving
+// CanRead/CanWrite from the level.
+func permsForLevel(admin bool, level string) Permissions {
+	level = strings.ToLower(strings.TrimSpace(level))
+	switch level {
+	case LevelEdit, LevelView:
+		// ok
+	default:
+		level = LevelDenied
+	}
+	return Permissions{
+		Admin:    admin,
+		Level:    level,
+		CanRead:  level != LevelDenied,
+		CanWrite: level == LevelEdit,
+	}
 }

@@ -244,7 +244,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	groups := auth.ExtractGroups(claims)
-	isAdmin := auth.IsAdmin(groups, s.Cfg.OIDCAdminGroup)
+	isAdmin := auth.IsAdmin(groups, s.Cfg.OIDCAdminGroups)
 
 	user, err := s.Store.UpsertUserByOIDC(ctx, sub, email, name, groups, isAdmin)
 	if err != nil {
@@ -334,7 +334,16 @@ func registerSession(api huma.API, s *Server) {
 		out.Body.Authenticated = true
 		out.Body.User = &sessionUser{ID: u.ID, Email: u.Email, Name: u.Name, Sub: u.OIDCSub}
 		out.Body.Groups = u.Groups
-		perms := auth.PermissionsFor(u.Groups, s.Cfg.OIDCAdminGroup)
+		// Permissions were resolved (per request) by the auth middleware and
+		// attached to the context. Fall back to a fresh resolve if missing.
+		perms, ok := permsFromContext(ctx)
+		if !ok {
+			grants, err := s.Store.GrantsMap(ctx)
+			if err != nil {
+				return nil, mapErr(err)
+			}
+			perms = auth.Resolve(u, s.Cfg.OIDCAdminGroups, grants)
+		}
 		out.Body.Permissions = &perms
 		return out, nil
 	})

@@ -61,8 +61,24 @@ function authErrorParam(): string | null {
   return new URLSearchParams(window.location.search).get("auth_error");
 }
 
+function NoAccessScreen() {
+  const { logout } = useAuth();
+  return (
+    <FullScreen>
+      <h2 style={{ color: "var(--text)", margin: 0 }}>Access pending</h2>
+      <p style={{ maxWidth: 460 }}>
+        Your account isn’t authorized for this dashboard yet. Ask an
+        administrator to grant your group access.
+      </p>
+      <button type="button" className="btn ghost" onClick={() => void logout()}>
+        Logout
+      </button>
+    </FullScreen>
+  );
+}
+
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { status, login } = useAuth();
+  const { status, login, permissions } = useAuth();
   // Block (show error instead of redirecting) when the backend reported an
   // auth error, or we've already looped past the attempt budget.
   const [blocked, setBlocked] = useState(
@@ -89,6 +105,12 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   }, [status, reason, login]);
 
   if (status === "authenticated") {
+    // Logged in but not authorized for any data: admins and view/edit users see
+    // the app; a non-admin whose group grant is "denied" would 403 on every data
+    // endpoint, so show a friendly screen instead of a broken app.
+    if (!permissions.admin && permissions.level === "denied") {
+      return <NoAccessScreen />;
+    }
     return <>{children}</>;
   }
 

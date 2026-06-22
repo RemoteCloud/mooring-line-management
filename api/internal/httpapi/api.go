@@ -44,6 +44,7 @@ func NewAPI(s *Server) (http.Handler, huma.API) {
 	// Auth endpoints: raw mux handlers for redirect/cookie control + a Huma
 	// /auth/session JSON endpoint.
 	registerAuth(api, s, mux)
+	registerAccess(api, s)
 
 	// Feature route registration (one per slice) goes here.
 	registerHealth(api, s)

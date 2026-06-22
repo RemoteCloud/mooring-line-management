@@ -4,6 +4,7 @@ import { useVessel } from "../../app/VesselContext";
 import { useVesselLayout, useLines, useSaveLayout, type Layout, type Winch, type Storage } from "../../api/hooks";
 import { WinchSymbol, StorageSymbol, Hull, VB_W, VB_H } from "./symbols";
 import { StatusDot } from "../../components/ui";
+import { WriteGuard } from "../../app/auth/WriteGuard";
 
 type Station = "fwd" | "aft";
 const ORIENTATIONS = [0, 45, -45, 90, -90];
@@ -114,7 +115,9 @@ export function DeckPage() {
         </div>
         <div className="grow" style={{ flex: 1 }} />
         {!edit ? (
-          <button className="btn ghost" onClick={enterEdit} disabled={!layout}>Edit layout</button>
+          <WriteGuard>
+            <button className="btn ghost" onClick={enterEdit} disabled={!layout}>Edit layout</button>
+          </WriteGuard>
         ) : (
           <>
             <button className="btn ghost" onClick={addWinch}>+ Winch</button>

@@ -5,6 +5,7 @@ import { useLines, useLineTypes, type LineRow, type LineFilters } from "../../ap
 import { StatusDot, LifecycleBadge } from "../../components/ui";
 import { ageLabel } from "../../lib/format";
 import { AddLineDialog } from "./AddLineDialog";
+import { WriteGuard } from "../../app/auth/WriteGuard";
 
 type SortKey = keyof Pick<
   LineRow,
@@ -61,7 +62,9 @@ export function RegisterPage() {
       <div className="toolbar">
         <h1 className="page-title" style={{ margin: 0 }}>Rope register</h1>
         <div className="grow" />
-        <button className="btn" onClick={() => setAddOpen(true)}>+ Add line</button>
+        <WriteGuard>
+          <button className="btn" onClick={() => setAddOpen(true)}>+ Add line</button>
+        </WriteGuard>
       </div>
 
       <div className="toolbar">

@@ -1,4 +1,5 @@
 import { useTurnLine } from "./useTurnLine";
+import { useCanWrite } from "../../app/auth/authContext";
 
 type TurnableLine = {
   id: string;
@@ -11,11 +12,13 @@ type TurnableLine = {
 // turnable and currently installed on a definite side (A or B).
 export function TurnButton({ line }: { line: TurnableLine }) {
   const turn = useTurnLine(line.id);
+  const canWrite = useCanWrite();
 
-  const disabled =
+  const notTurnable =
     !line.can_be_turned ||
     line.current_side === "n/a" ||
     !line.current_side;
+  const disabled = notTurnable || !canWrite;
 
   function onClick() {
     if (turn.isPending) return;
@@ -29,11 +32,15 @@ export function TurnButton({ line }: { line: TurnableLine }) {
         className="btn"
         disabled={disabled || turn.isPending}
         onClick={onClick}
+        title={!canWrite && !notTurnable ? "Read-only access" : undefined}
       >
         {turn.isPending ? "Turning…" : "Turn to other side"}
       </button>
-      {disabled && (
+      {notTurnable && (
         <p className="muted">This line cannot be turned.</p>
+      )}
+      {!notTurnable && !canWrite && (
+        <p className="muted">Read-only access — turning is disabled.</p>
       )}
       {turn.isError && (
         <p className="muted">

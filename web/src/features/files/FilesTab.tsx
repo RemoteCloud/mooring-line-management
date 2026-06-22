@@ -7,6 +7,7 @@ import {
   useUploadPhoto,
 } from "./api";
 import { PhotoTimeline } from "./PhotoTimeline";
+import { useCanWrite } from "../../app/auth/authContext";
 import "./files.css";
 
 const SIDES = ["n/a", "A", "B"] as const;
@@ -36,6 +37,7 @@ export function FilesTab({ lineId }: { lineId: string }) {
 
 function PhotoSection({ lineId }: { lineId: string }) {
   const upload = useUploadPhoto(lineId);
+  const canWrite = useCanWrite();
   const [file, setFile] = useState<File | null>(null);
   const [side, setSide] = useState<string>("n/a");
   const [condition, setCondition] = useState<string>("Good");
@@ -87,7 +89,12 @@ function PhotoSection({ lineId }: { lineId: string }) {
           <span className="muted">Taken</span>
           <input className="input" type="date" value={takenAt} onChange={(e) => setTakenAt(e.target.value)} />
         </label>
-        <button className="btn" type="submit" disabled={!file || upload.isPending}>
+        <button
+          className="btn"
+          type="submit"
+          disabled={!file || upload.isPending || !canWrite}
+          title={!canWrite ? "Read-only access" : undefined}
+        >
           {upload.isPending ? "Uploading…" : "Upload photo"}
         </button>
       </form>
@@ -102,6 +109,7 @@ function PhotoSection({ lineId }: { lineId: string }) {
 function DocumentSection({ lineId }: { lineId: string }) {
   const { data: docs, isLoading } = useDocuments(lineId);
   const upload = useUploadCertificate(lineId);
+  const canWrite = useCanWrite();
   const [file, setFile] = useState<File | null>(null);
   const [kind, setKind] = useState<string>("certificate");
 
@@ -132,7 +140,12 @@ function DocumentSection({ lineId }: { lineId: string }) {
             ))}
           </select>
         </label>
-        <button className="btn" type="submit" disabled={!file || upload.isPending}>
+        <button
+          className="btn"
+          type="submit"
+          disabled={!file || upload.isPending || !canWrite}
+          title={!canWrite ? "Read-only access" : undefined}
+        >
           {upload.isPending ? "Uploading…" : "Upload document"}
         </button>
       </form>

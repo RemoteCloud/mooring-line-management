@@ -74,14 +74,20 @@ func (s *Server) clearSessionCookie(w http.ResponseWriter) {
 
 // setOAuthStateCookie stores the login's state value in a short-lived,
 // HttpOnly cookie so the callback can prove the same browser started the flow.
+//
+// It MUST use SameSite=None so the browser still sends it on the cross-site
+// top-level redirect back from the identity provider to /auth/callback; with
+// the default SameSite=Lax the cookie is dropped on that hop and every login
+// fails the state check. SameSite=None requires Secure — http://localhost and
+// https origins are both secure contexts, so this works in dev and prod.
 func (s *Server) setOAuthStateCookie(w http.ResponseWriter, state string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     oauthStateCookieName,
 		Value:    state,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   s.secureCookie(),
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   int(flowTTL / time.Second),
 	})
 }
@@ -92,8 +98,8 @@ func (s *Server) clearOAuthStateCookie(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   s.secureCookie(),
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 		MaxAge:   -1,
 	})
 }
@@ -348,6 +354,12 @@ func safeReturnTo(rt string) string {
 	}
 	u, err := url.Parse(rt)
 	if err != nil || u.Scheme != "" || u.Host != "" || u.Opaque != "" || !strings.HasPrefix(u.Path, "/") || strings.HasPrefix(u.Path, "//") {
+		return "/"
+	}
+	// Never bounce back into the auth endpoints — that turns a transient login
+	// hiccup into an endless redirect loop with an ever-nesting return_to.
+	lp := strings.ToLower(u.Path)
+	if strings.HasPrefix(lp, "/auth/") || strings.HasPrefix(lp, "/api/auth/") {
 		return "/"
 	}
 	out := u.Path

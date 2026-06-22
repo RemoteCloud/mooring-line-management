@@ -47,7 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : "unauthenticated";
 
   const login = useCallback((returnTo?: string) => {
-    const target = returnTo ?? window.location.pathname + window.location.search;
+    const raw = returnTo ?? window.location.pathname + window.location.search;
+    // Never feed an auth path back as return_to — otherwise a failed login keeps
+    // wrapping the previous login URL into the next one (an ever-growing,
+    // self-nesting redirect loop). Fall back to the app root.
+    const path = raw.split("?")[0];
+    const target =
+      path.startsWith("/auth/") || path.startsWith("/api/auth/") ? "/" : raw;
     window.location.href =
       `${API_BASE}/auth/login?return_to=` + encodeURIComponent(target);
   }, []);

@@ -43,7 +43,6 @@ type OIDCFlow struct {
 type GroupAccess struct {
 	GroupID   string    `json:"groupId"`
 	Level     string    `json:"level"`
-	Label     string    `json:"label"`
 	UpdatedBy string    `json:"updatedBy"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

@@ -1,4 +1,4 @@
-/* Settings → Access control. Builds on the shared classes in styles.css. */
+/* Permissions → Access control. Builds on the shared classes in styles.css. */
 
 .access-intro {
   color: var(--text-dim);
@@ -24,11 +24,6 @@ table.grid.access-grid tbody tr.access-row {
 
 .access-grid select.input {
   min-width: 120px;
-}
-
-.access-label-input {
-  min-width: 200px;
-  width: 100%;
 }
 
 .access-status {

@@ -28,8 +28,9 @@ const flowTTL = 10 * time.Minute
 type ctxKey string
 
 const (
-	ctxUserKey  ctxKey = "auth.user"
-	ctxPermsKey ctxKey = "auth.perms"
+	ctxUserKey    ctxKey = "auth.user"
+	ctxPermsKey   ctxKey = "auth.perms"
+	ctxSessionKey ctxKey = "auth.session"
 )
 
 // registerAuth wires the OIDC login/callback/logout/session endpoints. The

@@ -142,7 +142,7 @@ func (s *Store) DeleteSession(ctx context.Context, sid string) error {
 // ListGroupAccess returns all group access grants, ordered by group id.
 func (s *Store) ListGroupAccess(ctx context.Context) ([]GroupAccess, error) {
 	rows, err := s.Pool.Query(ctx, `
-SELECT group_id, level, COALESCE(label,''), COALESCE(updated_by,''), updated_at
+SELECT group_id, level, COALESCE(updated_by,''), updated_at
 FROM group_access
 ORDER BY group_id`)
 	if err != nil {
@@ -152,7 +152,7 @@ ORDER BY group_id`)
 	var out []GroupAccess
 	for rows.Next() {
 		var g GroupAccess
-		if err := rows.Scan(&g.GroupID, &g.Level, &g.Label, &g.UpdatedBy, &g.UpdatedAt); err != nil {
+		if err := rows.Scan(&g.GroupID, &g.Level, &g.UpdatedBy, &g.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, g)
@@ -179,19 +179,18 @@ func (s *Store) GrantsMap(ctx context.Context) (map[string]string, error) {
 }
 
 // UpsertGroupAccess inserts or updates a grant for a group id.
-func (s *Store) UpsertGroupAccess(ctx context.Context, groupID, level, label, updatedBy string) (GroupAccess, error) {
+func (s *Store) UpsertGroupAccess(ctx context.Context, groupID, level, updatedBy string) (GroupAccess, error) {
 	var g GroupAccess
 	err := s.Pool.QueryRow(ctx, `
-INSERT INTO group_access (group_id, level, label, updated_by, updated_at)
-VALUES ($1, $2, NULLIF($3,''), NULLIF($4,''), now())
+INSERT INTO group_access (group_id, level, updated_by, updated_at)
+VALUES ($1, $2, NULLIF($3,''), now())
 ON CONFLICT (group_id) DO UPDATE SET
     level      = EXCLUDED.level,
-    label      = EXCLUDED.label,
     updated_by = EXCLUDED.updated_by,
     updated_at = now()
-RETURNING group_id, level, COALESCE(label,''), COALESCE(updated_by,''), updated_at`,
-		groupID, level, label, updatedBy).
-		Scan(&g.GroupID, &g.Level, &g.Label, &g.UpdatedBy, &g.UpdatedAt)
+RETURNING group_id, level, COALESCE(updated_by,''), updated_at`,
+		groupID, level, updatedBy).
+		Scan(&g.GroupID, &g.Level, &g.UpdatedBy, &g.UpdatedAt)
 	if err != nil {
 		return GroupAccess{}, err
 	}

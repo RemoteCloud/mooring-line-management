@@ -69,7 +69,7 @@ func AuthMiddleware(api huma.API, s *Server) func(huma.Context, func(huma.Contex
 			return
 		}
 
-		user, perms, ok := s.resolveSession(ctx)
+		user, perms, sess, ok := s.resolveSession(ctx)
 		if !ok {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "authentication required")
 			return
@@ -89,6 +89,7 @@ func AuthMiddleware(api huma.API, s *Server) func(huma.Context, func(huma.Contex
 
 		ctx = huma.WithValue(ctx, ctxUserKey, user)
 		ctx = huma.WithValue(ctx, ctxPermsKey, perms)
+		ctx = huma.WithValue(ctx, ctxSessionKey, sess)
 		next(ctx)
 	}
 }
@@ -96,44 +97,45 @@ func AuthMiddleware(api huma.API, s *Server) func(huma.Context, func(huma.Contex
 // resolveSession looks up the user + permissions for the request's session
 // cookie. ok is false when there is no cookie, no matching session, or the
 // store is unavailable — callers decide whether that is fatal.
-func (s *Server) resolveSession(ctx huma.Context) (store.User, auth.Permissions, bool) {
+func (s *Server) resolveSession(ctx huma.Context) (store.User, auth.Permissions, store.AuthSession, bool) {
 	if s.Store == nil {
-		return store.User{}, auth.Permissions{}, false
+		return store.User{}, auth.Permissions{}, store.AuthSession{}, false
 	}
 	sid := cookieValue(ctx.Header("Cookie"), sessionCookieName)
 	if sid == "" {
-		return store.User{}, auth.Permissions{}, false
+		return store.User{}, auth.Permissions{}, store.AuthSession{}, false
 	}
 	sess, err := s.Store.GetSession(ctx.Context(), sid)
 	if err != nil {
-		return store.User{}, auth.Permissions{}, false
+		return store.User{}, auth.Permissions{}, store.AuthSession{}, false
 	}
 	user, err := s.Store.GetUser(ctx.Context(), sess.UserID)
 	if err != nil {
-		return store.User{}, auth.Permissions{}, false
+		return store.User{}, auth.Permissions{}, store.AuthSession{}, false
 	}
 	// Load the group->level grants (one query) and resolve the effective
 	// permissions per request, so access changes take effect without re-login.
 	grants, err := s.Store.GrantsMap(ctx.Context())
 	if err != nil {
-		return store.User{}, auth.Permissions{}, false
+		return store.User{}, auth.Permissions{}, store.AuthSession{}, false
 	}
 	perms := auth.Resolve(user, s.Cfg.OIDCAdminGroups, grants)
 	// Best-effort liveness touch; ignore errors.
 	_ = s.Store.TouchSession(ctx.Context(), sid)
-	return user, perms, true
+	return user, perms, sess, true
 }
 
 // attachUserBestEffort resolves the session and, if present, attaches the user
 // and permissions to the context without ever rejecting the request. Used for
 // public paths like /auth/session that must report auth state, not enforce it.
 func (s *Server) attachUserBestEffort(ctx *huma.Context) {
-	user, perms, ok := s.resolveSession(*ctx)
+	user, perms, sess, ok := s.resolveSession(*ctx)
 	if !ok {
 		return
 	}
 	*ctx = huma.WithValue(*ctx, ctxUserKey, user)
 	*ctx = huma.WithValue(*ctx, ctxPermsKey, perms)
+	*ctx = huma.WithValue(*ctx, ctxSessionKey, sess)
 }
 
 // userFromContext returns the authenticated user, if any.
@@ -146,6 +148,13 @@ func userFromContext(ctx context.Context) (store.User, bool) {
 func permsFromContext(ctx context.Context) (auth.Permissions, bool) {
 	p, ok := ctx.Value(ctxPermsKey).(auth.Permissions)
 	return p, ok
+}
+
+// sessionFromContext returns the authenticated session (with encrypted tokens),
+// if any. Used by handlers that call upstream APIs on the user's behalf.
+func sessionFromContext(ctx context.Context) (store.AuthSession, bool) {
+	sess, ok := ctx.Value(ctxSessionKey).(store.AuthSession)
+	return sess, ok
 }
 
 // storeFlow / storeSession adapt the auth flow into store structs.

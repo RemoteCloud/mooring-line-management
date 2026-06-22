@@ -8,7 +8,7 @@ import { DeckPage } from "../features/deck/DeckPage";
 import { InspectionsPage } from "../features/inspections/InspectionsPage";
 import { LogbookPage } from "../features/inspections/LogbookPage";
 import { CataloguePage } from "../features/catalogue/CataloguePage";
-import { SettingsPage } from "../features/settings/SettingsPage";
+import { PermissionsPage } from "../features/permissions/PermissionsPage";
 import { RequireAuth } from "./auth/RequireAuth";
 
 export const router = createBrowserRouter([
@@ -34,7 +34,7 @@ export const router = createBrowserRouter([
         path: "catalogue",
         element: <CataloguePage />,
       },
-      { path: "settings", element: <SettingsPage /> },
+      { path: "permissions", element: <PermissionsPage /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

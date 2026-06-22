@@ -18,7 +18,7 @@ export const NAV: NavItem[] = [
   { to: "/logbook", label: "Log book", icon: "❏" },
   { to: "/files", label: "Files & certs", icon: "📄" },
   { to: "/catalogue", label: "Catalogue", icon: "⚙" },
-  { to: "/settings", label: "Settings", icon: "⚙︎", adminOnly: true },
+  { to: "/permissions", label: "Permissions", icon: "⚙︎", adminOnly: true },
 ];
 
 // Filters by scope only. Admin-gating (adminOnly) is applied where the nav is

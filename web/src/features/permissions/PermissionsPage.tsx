@@ -1,6 +1,6 @@
-// Settings → Access control (admin only). Lists the IdP groups the backend knows
-// about and lets an admin set each group's access level (Denied / View / Edit)
-// plus an optional friendly label.
+// Permissions → Access control (admin only). Lists the IdP groups the backend
+// knows about and lets an admin set each group's access level (Denied / View /
+// Edit). Group names come live from the IdP; the GUID is shown as a fallback.
 //
 // The access-control endpoints are not in the generated OpenAPI schema, so — as
 // with the auth/session endpoint — we use plain fetch with credentials so the
@@ -11,11 +11,11 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIsAdmin, type AccessLevel } from "../../app/auth/authContext";
 import { API_BASE } from "../../config";
-import "./settings.css";
+import "./permissions.css";
 
 type GroupGrant = {
   groupId: string;
-  label: string;
+  name: string;
   level: AccessLevel;
   userCount: number;
 };
@@ -47,18 +47,14 @@ async function fetchGroups(): Promise<GroupGrant[]> {
   return data.groups ?? [];
 }
 
-async function putGrant(
-  groupId: string,
-  level: "view" | "edit",
-  label?: string,
-): Promise<void> {
+async function putGrant(groupId: string, level: "view" | "edit"): Promise<void> {
   const res = await fetch(
     `${API_BASE}/access/grants/${encodeURIComponent(groupId)}`,
     {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ level, ...(label ? { label } : {}) }),
+      body: JSON.stringify({ level }),
     },
   );
   if (!res.ok) {
@@ -76,13 +72,13 @@ async function deleteGrant(groupId: string): Promise<void> {
   }
 }
 
-export function SettingsPage() {
+export function PermissionsPage() {
   const isAdmin = useIsAdmin();
 
   if (!isAdmin) {
     return (
       <>
-        <h1 className="page-title">Settings</h1>
+        <h1 className="page-title">Permissions</h1>
         <p className="page-sub">Access control</p>
         <div className="card">
           <p className="muted" style={{ margin: 0 }}>
@@ -116,7 +112,7 @@ function AccessControl() {
   if (forbidden) {
     return (
       <>
-        <Header />
+        <Header onReload={() => void refetch()} />
         <div className="card">
           <p className="muted" style={{ margin: 0 }}>
             You’re not authorized to manage access control (403). Administrator
@@ -129,7 +125,7 @@ function AccessControl() {
 
   return (
     <>
-      <Header />
+      <Header onReload={() => void refetch()} />
 
       <div className="card">
         <div className="table-wrap">
@@ -139,7 +135,6 @@ function AccessControl() {
                 <th>Group</th>
                 <th>Users</th>
                 <th>Access level</th>
-                <th>Label</th>
                 <th aria-label="Status" />
               </tr>
             </thead>
@@ -150,14 +145,14 @@ function AccessControl() {
 
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="muted access-empty">
+                  <td colSpan={4} className="muted access-empty">
                     Loading…
                   </td>
                 </tr>
               )}
               {loadError && !isLoading && (
                 <tr>
-                  <td colSpan={5} className="err access-empty">
+                  <td colSpan={4} className="err access-empty">
                     {loadError}{" "}
                     <button
                       type="button"
@@ -171,7 +166,7 @@ function AccessControl() {
               )}
               {!isLoading && !loadError && groups.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="muted access-empty">
+                  <td colSpan={4} className="muted access-empty">
                     No groups found yet. Groups appear here once users sign in.
                   </td>
                 </tr>
@@ -191,27 +186,16 @@ function GroupRow({
   group: GroupGrant;
   qc: ReturnType<typeof useQueryClient>;
 }) {
-  // Draft label text (so typing doesn't immediately PUT). React's recommended
-  // "adjust state during render" pattern: when the server-side label changes
-  // underneath us, reset the draft to match instead of using an effect.
-  const serverLabel = group.label ?? "";
-  const [labelDraft, setLabelDraft] = useState(serverLabel);
-  const [syncedLabel, setSyncedLabel] = useState(serverLabel);
-  if (serverLabel !== syncedLabel) {
-    setSyncedLabel(serverLabel);
-    setLabelDraft(serverLabel);
-  }
-
   // Toggled true briefly after a successful save (a timer clears it) so the
   // "Saved ✓" badge shows without reading an impure clock during render.
   const [justSaved, setJustSaved] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: async (next: { level: AccessLevel; label: string }) => {
+    mutationFn: async (next: { level: AccessLevel }) => {
       if (next.level === "denied") {
         await deleteGrant(group.groupId);
       } else {
-        await putGrant(group.groupId, next.level, next.label || undefined);
+        await putGrant(group.groupId, next.level);
       }
     },
     // Optimistically update the cached row, snapshot for rollback.
@@ -220,9 +204,7 @@ function GroupRow({
       const prev = qc.getQueryData<GroupGrant[]>(GROUPS_KEY);
       qc.setQueryData<GroupGrant[]>(GROUPS_KEY, (gs) =>
         (gs ?? []).map((g) =>
-          g.groupId === group.groupId
-            ? { ...g, level: next.level, label: next.label }
-            : g,
+          g.groupId === group.groupId ? { ...g, level: next.level } : g,
         ),
       );
       return { prev };
@@ -243,20 +225,14 @@ function GroupRow({
   const saving = mutation.isPending;
 
   const onLevelChange = (next: AccessLevel) => {
-    mutation.mutate({ level: next, label: labelDraft });
-  };
-
-  const onLabelSave = () => {
-    if (labelDraft === (group.label ?? "")) return; // nothing changed
-    if (group.level === "denied") return; // label only meaningful when granted
-    mutation.mutate({ level: group.level, label: labelDraft });
+    mutation.mutate({ level: next });
   };
 
   return (
     <tr className="access-row">
       <td>
-        {group.label ? (
-          group.label
+        {group.name ? (
+          group.name
         ) : (
           <code className="access-gid">{group.groupId}</code>
         )}
@@ -268,31 +244,12 @@ function GroupRow({
           value={group.level}
           disabled={saving}
           onChange={(e) => onLevelChange(e.target.value as AccessLevel)}
-          aria-label={`Access level for ${group.label || group.groupId}`}
+          aria-label={`Access level for ${group.name || group.groupId}`}
         >
           <option value="denied">Denied</option>
           <option value="view">View</option>
           <option value="edit">Edit</option>
         </select>
-      </td>
-      <td>
-        <input
-          className="input access-label-input"
-          type="text"
-          placeholder={
-            group.level === "denied" ? "Grant access first" : "optional label"
-          }
-          value={labelDraft}
-          disabled={group.level === "denied" || saving}
-          onChange={(e) => setLabelDraft(e.target.value)}
-          onBlur={onLabelSave}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              (e.target as HTMLInputElement).blur();
-            }
-          }}
-          aria-label={`Label for ${group.groupId}`}
-        />
       </td>
       <td className="access-status">
         {saving && <span className="muted">Saving…</span>}
@@ -309,14 +266,19 @@ function GroupRow({
   );
 }
 
-function Header() {
+function Header({ onReload }: { onReload: () => void }) {
   return (
     <>
-      <h1 className="page-title">Settings</h1>
+      <h1 className="page-title">Permissions</h1>
       <p className="page-sub">Access control</p>
       <p className="access-intro">
         Admins always have full access. Every other user gets the highest level
         granted to any of their groups; groups without a grant are denied.
+      </p>
+      <p style={{ margin: "0 0 20px" }}>
+        <button type="button" className="btn ghost" onClick={onReload}>
+          Reload groups
+        </button>
       </p>
     </>
   );

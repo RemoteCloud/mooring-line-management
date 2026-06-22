@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strings"
@@ -13,11 +14,11 @@ import (
 )
 
 // accessGroup is one row in the admin access-control list: a group GUID, its
-// current level ("denied" when no grant exists), an optional human label, and
-// how many users currently carry the group.
+// human name (resolved live from UserManagement; "" when unknown), its current
+// level ("denied" when no grant exists), and how many users carry the group.
 type accessGroup struct {
 	GroupID   string `json:"groupId"`
-	Label     string `json:"label"`
+	Name      string `json:"name"`
 	Level     string `json:"level"`
 	UserCount int    `json:"userCount"`
 }
@@ -63,7 +64,7 @@ func registerAccess(api huma.API, s *Server) {
 			return nil, mapErr(err)
 		}
 
-		// Merge: every group id from either source. Grants supply level+label;
+		// Merge: every group id from either source. Grants supply the level;
 		// groups with no grant are "denied". userCount comes from GroupsSeen
 		// (0 if a grant exists for a group no user currently carries).
 		byID := map[string]*accessGroup{}
@@ -77,7 +78,15 @@ func registerAccess(api huma.API, s *Server) {
 				byID[g.GroupID] = row
 			}
 			row.Level = g.Level
-			row.Label = g.Label
+		}
+
+		// Resolve human names live from UserManagement using the admin's own
+		// access token (best-effort: on failure rows keep their GUIDs and the UI
+		// shows a "Reload" affordance). Mirrors the reference app.
+		for id, name := range s.positionTeamNames(ctx) {
+			if row, ok := byID[strings.ToLower(id)]; ok {
+				row.Name = name
+			}
 		}
 
 		out := make([]accessGroup, 0, len(byID))
@@ -112,7 +121,6 @@ func registerAccess(api huma.API, s *Server) {
 		GroupID string `path:"groupId"`
 		Body    struct {
 			Level string `json:"level" enum:"view,edit"`
-			Label string `json:"label,omitempty"`
 		}
 	}) (*struct{ Body store.GroupAccess }, error) {
 		if err := requireAdmin(ctx); err != nil {
@@ -132,7 +140,7 @@ func registerAccess(api huma.API, s *Server) {
 			updatedBy = u.Email
 		}
 
-		g, err := s.Store.UpsertGroupAccess(ctx, groupID, level, strings.TrimSpace(in.Body.Label), updatedBy)
+		g, err := s.Store.UpsertGroupAccess(ctx, groupID, level, updatedBy)
 		if err != nil {
 			return nil, mapErr(err)
 		}
@@ -158,4 +166,35 @@ func registerAccess(api huma.API, s *Server) {
 		}
 		return nil, nil
 	})
+}
+
+// positionTeamNames resolves a lowercased groupId -> name map from the UM
+// position-teams API, using the requesting admin's decrypted access token.
+// Best-effort: any failure (no session, decrypt error, UM down) yields an empty
+// map and a warning, so the admin UI degrades to GUIDs rather than erroring.
+func (s *Server) positionTeamNames(ctx context.Context) map[string]string {
+	out := map[string]string{}
+	if s.Auth == nil || s.Cipher == nil {
+		return out
+	}
+	sess, ok := sessionFromContext(ctx)
+	if !ok || sess.AccessTokenEnc == "" {
+		return out
+	}
+	token, err := s.Cipher.Decrypt(sess.AccessTokenEnc)
+	if err != nil || token == "" {
+		slog.Warn("access: decrypt access token for team names", "err", err)
+		return out
+	}
+	teams, err := s.Auth.FetchPositionTeams(ctx, token)
+	if err != nil {
+		slog.Warn("access: fetch position teams", "err", err)
+		return out
+	}
+	for _, t := range teams {
+		if t.Name != "" {
+			out[strings.ToLower(t.ID)] = t.Name
+		}
+	}
+	return out
 }

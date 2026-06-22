@@ -444,8 +444,8 @@ export interface components {
     schemas: {
         AccessGroup: {
             groupId: string;
-            label: string;
             level: string;
+            name: string;
             /** Format: int64 */
             userCount: number;
         };
@@ -630,7 +630,6 @@ export interface components {
              */
             readonly $schema?: string;
             groupId: string;
-            label: string;
             level: string;
             /** Format: date-time */
             updatedAt: string;
@@ -980,7 +979,6 @@ export interface components {
              * @example https://example.com/schemas/Put-access-grantRequest.json
              */
             readonly $schema?: string;
-            label?: string;
             /** @enum {string} */
             level: "view" | "edit";
         };

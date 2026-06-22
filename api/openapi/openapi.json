@@ -7,10 +7,10 @@
           "groupId": {
             "type": "string"
           },
-          "label": {
+          "level": {
             "type": "string"
           },
-          "level": {
+          "name": {
             "type": "string"
           },
           "userCount": {
@@ -20,7 +20,7 @@
         },
         "required": [
           "groupId",
-          "label",
+          "name",
           "level",
           "userCount"
         ],
@@ -459,9 +459,6 @@
           "groupId": {
             "type": "string"
           },
-          "label": {
-            "type": "string"
-          },
           "level": {
             "type": "string"
           },
@@ -476,7 +473,6 @@
         "required": [
           "groupId",
           "level",
-          "label",
           "updatedBy",
           "updatedAt"
         ],
@@ -1469,9 +1465,6 @@
             ],
             "format": "uri",
             "readOnly": true,
-            "type": "string"
-          },
-          "label": {
             "type": "string"
           },
           "level": {

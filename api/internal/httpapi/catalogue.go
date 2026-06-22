@@ -40,6 +40,23 @@ func registerCatalogue(api huma.API, s *Server) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "update-maker", Method: http.MethodPatch, Path: "/makers/{id}",
+		Summary: "Update maker", Tags: tag,
+	}, func(ctx context.Context, in *struct {
+		ID   string `path:"id" format:"uuid"`
+		Body struct {
+			Name  string `json:"name" minLength:"1"`
+			Notes string `json:"notes,omitempty"`
+		}
+	}) (*struct{ Body store.Maker }, error) {
+		m, err := s.Store.UpdateMaker(ctx, in.ID, in.Body.Name, in.Body.Notes)
+		if err != nil {
+			return nil, mapErr(err)
+		}
+		return &struct{ Body store.Maker }{Body: m}, nil
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "list-line-types", Method: http.MethodGet, Path: "/line-types",
 		Summary: "List line types", Tags: tag,
 	}, func(ctx context.Context, _ *struct{}) (*struct{ Body []store.LineType }, error) {
@@ -60,6 +77,23 @@ func registerCatalogue(api huma.API, s *Server) {
 		}
 	}) (*struct{ Body store.LineType }, error) {
 		t, err := s.Store.CreateLineType(ctx, in.Body.Name, in.Body.Description)
+		if err != nil {
+			return nil, mapErr(err)
+		}
+		return &struct{ Body store.LineType }{Body: t}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "update-line-type", Method: http.MethodPatch, Path: "/line-types/{id}",
+		Summary: "Update line type", Tags: tag,
+	}, func(ctx context.Context, in *struct {
+		ID   string `path:"id" format:"uuid"`
+		Body struct {
+			Name        string `json:"name" minLength:"1"`
+			Description string `json:"description,omitempty"`
+		}
+	}) (*struct{ Body store.LineType }, error) {
+		t, err := s.Store.UpdateLineType(ctx, in.ID, in.Body.Name, in.Body.Description)
 		if err != nil {
 			return nil, mapErr(err)
 		}
@@ -111,6 +145,37 @@ func registerCatalogue(api huma.API, s *Server) {
 		}
 	}) (*struct{ Body store.Product }, error) {
 		p, err := s.Store.CreateProduct(ctx, store.NewProductInput{
+			MakerID: in.Body.MakerID, LineTypeID: in.Body.LineTypeID,
+			ProductName: in.Body.ProductName, ConstructionType: in.Body.ConstructionType,
+			DefaultLength: in.Body.DefaultLength, SWL: in.Body.SWL, BreakLoad: in.Body.BreakLoad,
+			CanBeTurned: in.Body.CanBeTurned,
+			ManualRef: in.Body.ManualRef, Notes: in.Body.Notes,
+		})
+		if err != nil {
+			return nil, mapErr(err)
+		}
+		return &struct{ Body store.Product }{Body: p}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "update-product", Method: http.MethodPatch, Path: "/products/{id}",
+		Summary: "Update product", Tags: tag,
+	}, func(ctx context.Context, in *struct {
+		ID   string `path:"id" format:"uuid"`
+		Body struct {
+			MakerID          string   `json:"makerId" format:"uuid"`
+			LineTypeID       string   `json:"lineTypeId" format:"uuid"`
+			ProductName      string   `json:"productName" minLength:"1"`
+			ConstructionType string   `json:"constructionType,omitempty"`
+			DefaultLength    *float64 `json:"defaultLength,omitempty"`
+			SWL              *float64 `json:"swl,omitempty"`
+			BreakLoad        *float64 `json:"breakLoad,omitempty"`
+			CanBeTurned      bool     `json:"canBeTurned"`
+			ManualRef        string   `json:"manufacturerManualRef,omitempty"`
+			Notes            string   `json:"notes,omitempty"`
+		}
+	}) (*struct{ Body store.Product }, error) {
+		p, err := s.Store.UpdateProduct(ctx, in.ID, store.NewProductInput{
 			MakerID: in.Body.MakerID, LineTypeID: in.Body.LineTypeID,
 			ProductName: in.Body.ProductName, ConstructionType: in.Body.ConstructionType,
 			DefaultLength: in.Body.DefaultLength, SWL: in.Body.SWL, BreakLoad: in.Body.BreakLoad,

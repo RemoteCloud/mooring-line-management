@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 func newID() string { return uuid.Must(uuid.NewV7()).String() }
@@ -32,6 +33,18 @@ func (s *Store) CreateMaker(ctx context.Context, name, notes string) (Maker, err
 	return m, err
 }
 
+func (s *Store) UpdateMaker(ctx context.Context, id, name, notes string) (Maker, error) {
+	tag, err := s.Pool.Exec(ctx,
+		`UPDATE maker SET name=$2, notes=NULLIF($3,'') WHERE id=$1`, id, name, notes)
+	if err != nil {
+		return Maker{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return Maker{}, pgx.ErrNoRows
+	}
+	return Maker{ID: id, Name: name, Notes: notes}, nil
+}
+
 func (s *Store) ListLineTypes(ctx context.Context) ([]LineType, error) {
 	rows, err := s.Pool.Query(ctx, `SELECT id, name, COALESCE(description,'') FROM line_type ORDER BY name`)
 	if err != nil {
@@ -54,6 +67,18 @@ func (s *Store) CreateLineType(ctx context.Context, name, desc string) (LineType
 	_, err := s.Pool.Exec(ctx,
 		`INSERT INTO line_type (id, name, description) VALUES ($1,$2,NULLIF($3,''))`, t.ID, name, desc)
 	return t, err
+}
+
+func (s *Store) UpdateLineType(ctx context.Context, id, name, desc string) (LineType, error) {
+	tag, err := s.Pool.Exec(ctx,
+		`UPDATE line_type SET name=$2, description=NULLIF($3,'') WHERE id=$1`, id, name, desc)
+	if err != nil {
+		return LineType{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return LineType{}, pgx.ErrNoRows
+	}
+	return LineType{ID: id, Name: name, Description: desc}, nil
 }
 
 const productSelect = `
@@ -115,6 +140,23 @@ VALUES ($1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,NULLIF($10,''),NULLIF($11,''))`,
 		in.DefaultLength, in.SWL, in.BreakLoad, in.CanBeTurned, in.ManualRef, in.Notes)
 	if err != nil {
 		return Product{}, err
+	}
+	return s.GetProduct(ctx, id)
+}
+
+func (s *Store) UpdateProduct(ctx context.Context, id string, in NewProductInput) (Product, error) {
+	tag, err := s.Pool.Exec(ctx, `
+UPDATE product SET maker_id=$2, line_type_id=$3, product_name=$4, construction_type=NULLIF($5,''),
+                   default_length=$6, swl=$7, break_load=$8, can_be_turned=$9,
+                   manufacturer_manual_ref=NULLIF($10,''), notes=NULLIF($11,'')
+WHERE id=$1`,
+		id, in.MakerID, in.LineTypeID, in.ProductName, in.ConstructionType,
+		in.DefaultLength, in.SWL, in.BreakLoad, in.CanBeTurned, in.ManualRef, in.Notes)
+	if err != nil {
+		return Product{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return Product{}, pgx.ErrNoRows
 	}
 	return s.GetProduct(ctx, id)
 }

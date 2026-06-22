@@ -1706,6 +1706,113 @@
         },
         "type": "object"
       },
+      "Update-line-typeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Update-line-typeRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "Update-makerRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Update-makerRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "Update-productRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Update-productRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "breakLoad": {
+            "format": "double",
+            "type": "number"
+          },
+          "canBeTurned": {
+            "type": "boolean"
+          },
+          "constructionType": {
+            "type": "string"
+          },
+          "defaultLength": {
+            "format": "double",
+            "type": "number"
+          },
+          "lineTypeId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "makerId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "manufacturerManualRef": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "productName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "swl": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "makerId",
+          "lineTypeId",
+          "productName",
+          "canBeTurned"
+        ],
+        "type": "object"
+      },
       "Update-userRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2341,6 +2448,58 @@
         ]
       }
     },
+    "/line-types/{id}": {
+      "patch": {
+        "operationId": "update-line-type",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Update-line-typeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineType"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update line type",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
     "/lines/{id}": {
       "get": {
         "operationId": "get-line",
@@ -2911,6 +3070,58 @@
         ]
       }
     },
+    "/makers/{id}": {
+      "patch": {
+        "operationId": "update-maker",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Update-makerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Maker"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update maker",
+        "tags": [
+          "catalogue"
+        ]
+      }
+    },
     "/me": {
       "get": {
         "operationId": "whoami",
@@ -3108,6 +3319,56 @@
           }
         },
         "summary": "Get product",
+        "tags": [
+          "catalogue"
+        ]
+      },
+      "patch": {
+        "operationId": "update-product",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Update-productRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update product",
         "tags": [
           "catalogue"
         ]

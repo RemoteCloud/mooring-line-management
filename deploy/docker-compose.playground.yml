@@ -40,14 +40,19 @@ services:
       traefik.http.routers.mooring-s3.rule: Host(`mooring-s3.operationcentric.com`)
       traefik.http.services.mooring-s3.loadbalancer.server.port: "9000"
 
-  api:
+  # Single app container: the Go server serves both the API and the built web bundle.
+  app:
     build:
       context: ..
-      dockerfile: deploy/Dockerfile
+      dockerfile: deploy/Dockerfile.app
+      args:
+        VITE_SCOPE: onboard
+        VITE_VESSEL_ID: ${VESSEL_ID:-00000000-0000-0000-0000-0000000000aa}
     environment:
       SCOPE: onboard
       VESSEL_ID: ${VESSEL_ID:-00000000-0000-0000-0000-0000000000aa}
       HTTP_ADDR: ":8080"
+      WEB_DIR: /web
       DATABASE_URL: postgres://mooring:${DB_PASSWORD:-mooring}@db:5432/mooring?sslmode=disable
       S3_ENDPOINT: http://minio:9000
       S3_PUBLIC_ENDPOINT: https://mooring-s3.operationcentric.com
@@ -57,28 +62,17 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:?set in env-file}
       JWT_SECRET: ${JWT_SECRET:?set in env-file}
       ADMIN_BOOTSTRAP_KEY: ${ADMIN_BOOTSTRAP_KEY:?set in env-file}
-    networks: [internal]
+    networks: [internal, traefik_proxy]
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-
-  web:
-    build:
-      context: ..
-      dockerfile: web/Dockerfile
-      args:
-        VITE_SCOPE: onboard
-        VITE_VESSEL_ID: ${VESSEL_ID:-00000000-0000-0000-0000-0000000000aa}
-    networks: [internal, traefik_proxy]
-    restart: unless-stopped
-    depends_on: [api]
     labels:
       traefik.enable: "true"
       traefik.docker.network: traefik_proxy
       traefik.http.routers.mooring-web.entrypoints: https
       traefik.http.routers.mooring-web.rule: Host(`mooring.operationcentric.com`)
-      traefik.http.services.mooring-web.loadbalancer.server.port: "80"
+      traefik.http.services.mooring-web.loadbalancer.server.port: "8080"
 
 volumes:
   mooring_db:

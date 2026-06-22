@@ -40,6 +40,10 @@ type Config struct {
 	// so the operator always holds a working credential (no lockout). Basic/temporary auth.
 	AdminBootstrapKey string
 
+	// WebDir, when set, makes the server also serve the built web bundle from this dir
+	// (single-container deploy). Empty in local dev, where Vite serves the web.
+	WebDir string
+
 	// AutoMigrate applies pending migrations at startup. Convenient for container
 	// boot; default true.
 	AutoMigrate bool
@@ -61,6 +65,7 @@ func Load() (*Config, error) {
 		S3UseSSL:          getenv("S3_USE_SSL", "false") == "true",
 		JWTSecret:         getenv("JWT_SECRET", "dev-insecure-change-me"),
 		AdminBootstrapKey: os.Getenv("ADMIN_BOOTSTRAP_KEY"),
+		WebDir:            os.Getenv("WEB_DIR"),
 		AutoMigrate:       getenv("AUTO_MIGRATE", "true") != "false",
 	}
 

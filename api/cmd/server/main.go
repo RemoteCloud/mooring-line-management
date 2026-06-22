@@ -95,6 +95,10 @@ func run(log *slog.Logger) error {
 	}
 
 	handler, _ := httpapi.NewAPI(&httpapi.Server{Cfg: cfg, Store: st})
+	// Single-container deploy: also serve the built web bundle from WEB_DIR.
+	if cfg.WebDir != "" {
+		handler = httpapi.WithStaticSPA(handler, cfg.WebDir)
+	}
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

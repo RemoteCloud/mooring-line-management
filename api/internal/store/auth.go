@@ -1,0 +1,136 @@
+package store
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+)
+
+// --- OIDC flow (short-lived auth-code state) ------------------------------
+
+// CreateFlow persists the state for an in-flight login.
+func (s *Store) CreateFlow(ctx context.Context, f OIDCFlow) error {
+	returnTo := f.ReturnTo
+	if returnTo == "" {
+		returnTo = "/"
+	}
+	_, err := s.Pool.Exec(ctx, `
+INSERT INTO oidc_flow (state, code_verifier, nonce, return_to)
+VALUES ($1,$2,$3,$4)`,
+		f.State, f.CodeVerifier, f.Nonce, returnTo)
+	return err
+}
+
+// TakeFlow atomically fetches and deletes a flow row by state. Returns pgx.ErrNoRows
+// if it does not exist.
+func (s *Store) TakeFlow(ctx context.Context, state string) (OIDCFlow, error) {
+	var f OIDCFlow
+	err := s.Pool.QueryRow(ctx, `
+DELETE FROM oidc_flow WHERE state = $1
+RETURNING state, code_verifier, nonce, return_to, created_at`, state).
+		Scan(&f.State, &f.CodeVerifier, &f.Nonce, &f.ReturnTo, &f.CreatedAt)
+	return f, err
+}
+
+// DeleteExpiredFlows removes flow rows older than the cutoff (housekeeping).
+func (s *Store) DeleteExpiredFlows(ctx context.Context, olderThan time.Time) error {
+	_, err := s.Pool.Exec(ctx, `DELETE FROM oidc_flow WHERE created_at < $1`, olderThan)
+	return err
+}
+
+// --- Users ----------------------------------------------------------------
+
+// UpsertUserByOIDC inserts or updates an app_user keyed by oidc_sub, returning the
+// stored user. Groups are persisted as a JSON array.
+func (s *Store) UpsertUserByOIDC(ctx context.Context, sub, email, name string, groups []string, isAdmin bool) (User, error) {
+	groupsJSON, err := json.Marshal(groups)
+	if err != nil {
+		return User{}, err
+	}
+	id := newID()
+	var u User
+	var groupsRaw []byte
+	err = s.Pool.QueryRow(ctx, `
+INSERT INTO app_user (id, oidc_sub, email, name, role, groups, is_admin, active, origin, last_login_at)
+VALUES ($1, $2, $3, $4, NULL, $5, $6, true, 'oidc', now())
+ON CONFLICT (oidc_sub) DO UPDATE SET
+    email         = EXCLUDED.email,
+    name          = EXCLUDED.name,
+    groups        = EXCLUDED.groups,
+    is_admin      = EXCLUDED.is_admin,
+    active        = true,
+    last_login_at = now(),
+    updated_at    = now()
+RETURNING id, COALESCE(email,''), COALESCE(name,''), COALESCE(oidc_sub,''),
+          COALESCE(groups,'[]'), is_admin, last_login_at`,
+		id, sub, email, name, string(groupsJSON), isAdmin).
+		Scan(&u.ID, &u.Email, &u.Name, &u.OIDCSub, &groupsRaw, &u.IsAdmin, &u.LastLoginAt)
+	if err != nil {
+		return User{}, err
+	}
+	_ = json.Unmarshal(groupsRaw, &u.Groups)
+	return u, nil
+}
+
+// GetUser fetches a user by id.
+func (s *Store) GetUser(ctx context.Context, id string) (User, error) {
+	var u User
+	var groupsRaw []byte
+	err := s.Pool.QueryRow(ctx, `
+SELECT id, COALESCE(email,''), COALESCE(name,''), COALESCE(oidc_sub,''),
+       COALESCE(groups,'[]'), is_admin, last_login_at
+FROM app_user WHERE id = $1`, id).
+		Scan(&u.ID, &u.Email, &u.Name, &u.OIDCSub, &groupsRaw, &u.IsAdmin, &u.LastLoginAt)
+	if err != nil {
+		return User{}, err
+	}
+	_ = json.Unmarshal(groupsRaw, &u.Groups)
+	return u, nil
+}
+
+// --- Sessions -------------------------------------------------------------
+
+// CreateSession stores a new server-side session with encrypted tokens.
+func (s *Store) CreateSession(ctx context.Context, sess AuthSession) error {
+	_, err := s.Pool.Exec(ctx, `
+INSERT INTO auth_session (sid, user_id, access_token_enc, refresh_token_enc, id_token_enc, access_expires_at)
+VALUES ($1,$2,NULLIF($3,''),NULLIF($4,''),NULLIF($5,''),$6)`,
+		sess.SID, sess.UserID, sess.AccessTokenEnc, sess.RefreshTokenEnc, sess.IDTokenEnc, sess.AccessExpiresAt)
+	return err
+}
+
+// GetSession fetches a session row by sid (pgx.ErrNoRows if absent).
+func (s *Store) GetSession(ctx context.Context, sid string) (AuthSession, error) {
+	var a AuthSession
+	var access, refresh, idtok *string
+	err := s.Pool.QueryRow(ctx, `
+SELECT sid, user_id, access_token_enc, refresh_token_enc, id_token_enc,
+       access_expires_at, created_at, last_seen_at
+FROM auth_session WHERE sid = $1`, sid).
+		Scan(&a.SID, &a.UserID, &access, &refresh, &idtok, &a.AccessExpiresAt, &a.CreatedAt, &a.LastSeenAt)
+	if err != nil {
+		return AuthSession{}, err
+	}
+	if access != nil {
+		a.AccessTokenEnc = *access
+	}
+	if refresh != nil {
+		a.RefreshTokenEnc = *refresh
+	}
+	if idtok != nil {
+		a.IDTokenEnc = *idtok
+	}
+	return a, nil
+}
+
+// TouchSession updates last_seen_at for liveness tracking.
+func (s *Store) TouchSession(ctx context.Context, sid string) error {
+	_, err := s.Pool.Exec(ctx, `UPDATE auth_session SET last_seen_at = now() WHERE sid = $1`, sid)
+	return err
+}
+
+// DeleteSession removes a session (logout).
+func (s *Store) DeleteSession(ctx context.Context, sid string) error {
+	_, err := s.Pool.Exec(ctx, `DELETE FROM auth_session WHERE sid = $1`, sid)
+	return err
+}

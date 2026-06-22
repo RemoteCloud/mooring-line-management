@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS api_key;
+ALTER TABLE app_user ALTER COLUMN password_hash DROP DEFAULT;

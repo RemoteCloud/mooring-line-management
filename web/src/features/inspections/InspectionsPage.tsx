@@ -1,4 +1,5 @@
 import { API_BASE } from "../../config";
+import { getApiKey } from "../../api/authKey";
 import { useVessel } from "../../app/VesselContext";
 import { StatusDot } from "../../components/ui";
 import { dateLabel } from "../../lib/format";
@@ -17,8 +18,10 @@ export function InspectionsPage() {
 
       {vesselId && (
         <div className="insp-downloads">
-          <a href={`${API_BASE}/reports/condition?vessel_id=${vesselId}&format=csv`}>Download CSV</a>
-          <a href={`${API_BASE}/reports/condition?vessel_id=${vesselId}&format=pdf`}>Download PDF</a>
+          {/* Browser navigations can't carry an Authorization header, so the key rides
+              the query string (the API accepts ?api_key= as a fallback). */}
+          <a href={`${API_BASE}/reports/condition?vesselId=${vesselId}&format=csv&api_key=${encodeURIComponent(getApiKey())}`}>Download CSV</a>
+          <a href={`${API_BASE}/reports/condition?vesselId=${vesselId}&format=pdf&api_key=${encodeURIComponent(getApiKey())}`}>Download PDF</a>
         </div>
       )}
 
@@ -30,12 +33,12 @@ export function InspectionsPage() {
         <div className="insp-list">
           {recent.map((i) => (
             <div className="insp-row" key={i.id}>
-              <span className="insp-date">{dateLabel(i.inspected_at)}</span>
+              <span className="insp-date">{dateLabel(i.inspectedAt)}</span>
               <span className="insp-cond">
-                <StatusDot condition={i.condition_status as never} /> {i.condition_status}
+                <StatusDot condition={i.conditionStatus as never} /> {i.conditionStatus}
               </span>
               <span className="insp-meta">
-                <span className="insp-by">{i.line_name} · {i.serial_number}</span>
+                <span className="insp-by">{i.lineName} · {i.serialNumber}</span>
                 {i.notes && <span className="insp-notes">{i.notes}</span>}
               </span>
             </div>

@@ -4,6 +4,7 @@ import {
   useWebhooks, useWebhookEvents, useCreateWebhook, useUpdateWebhook, useDeleteWebhook, useTestWebhook,
   type WebhookSubscription, type WebhookInput,
 } from "./api";
+import { UsersSection } from "./UsersSection";
 
 export function SettingsPage() {
   return (
@@ -11,6 +12,7 @@ export function SettingsPage() {
       <h1 className="page-title">Settings</h1>
       <p className="page-sub">Integrations and delivery configuration.</p>
       <WebhooksSection />
+      <UsersSection />
     </>
   );
 }
@@ -103,7 +105,7 @@ const DEFAULT_TEMPLATE = `{
   "event": "{{event.type}}",
   "at": "{{event.time}}",
   "vessel": "{{vessel.id}}",
-  "line": "{{payload.line_id}}"
+  "line": "{{payload.lineId}}"
 }`;
 
 function WebhookDialog({ vesselId, existing, onClose }: {
@@ -123,7 +125,7 @@ function WebhookDialog({ vesselId, existing, onClose }: {
   const [headerRows, setHeaderRows] = useState<{ k: string; v: string }[]>(
     Object.entries(existing?.headers ?? {}).map(([k, v]) => ({ k, v })),
   );
-  const [template, setTemplate] = useState(existing?.payload_template ?? "");
+  const [template, setTemplate] = useState(existing?.payloadTemplate ?? "");
   const [active, setActive] = useState(existing?.active ?? true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -149,7 +151,7 @@ function WebhookDialog({ vesselId, existing, onClose }: {
       secret: secret.trim() || undefined,
       events,
       headers,
-      payload_template: template.trim() || undefined,
+      payloadTemplate: template.trim() || undefined,
       active,
     };
     try {
@@ -175,7 +177,7 @@ function WebhookDialog({ vesselId, existing, onClose }: {
           <input className="input" value={url} placeholder="https://example.com/hooks/mooring" onChange={(e) => setUrl(e.target.value)} />
         </div>
         <div className="field">
-          <label>Signing secret {editing && existing?.has_secret && <span className="muted" style={{ fontWeight: 400 }}>· set — leave blank to keep</span>}</label>
+          <label>Signing secret {editing && existing?.hasSecret && <span className="muted" style={{ fontWeight: 400 }}>· set — leave blank to keep</span>}</label>
           <input className="input" type="password" value={secret} placeholder={editing ? "•••••• (unchanged)" : "HMAC-SHA256 key (optional)"} onChange={(e) => setSecret(e.target.value)} />
           <span className="muted" style={{ fontSize: 12 }}>Sent as <code>X-Signature-256: sha256=…</code> over the request body.</span>
         </div>

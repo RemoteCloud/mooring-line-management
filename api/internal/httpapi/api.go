@@ -37,7 +37,9 @@ func NewAPI(s *Server) (http.Handler, huma.API) {
 	registerDocs(mux)
 	registerSwagger(mux)
 
-	// Cross-cutting: scope guard runs before feature handlers (registered as middleware).
+	// Cross-cutting middleware, in order: authenticate the API key first (so scope and
+	// handlers see the authenticated user), then enforce deployment scope.
+	api.UseMiddleware(AuthMiddleware(api, s))
 	api.UseMiddleware(ScopeMiddleware(api, s.Cfg))
 
 	// Feature route registration (one per slice) goes here.
@@ -50,6 +52,7 @@ func NewAPI(s *Server) (http.Handler, huma.API) {
 	registerFiles(api, s)
 	registerOverview(api, s)
 	registerWebhooks(api, s)
+	registerUsers(api, s)
 
 	return mux, api
 }

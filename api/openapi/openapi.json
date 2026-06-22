@@ -1,6 +1,101 @@
 {
   "components": {
     "schemas": {
+      "APIKey": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "keyPrefix": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "name",
+          "keyPrefix",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AuthUser": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AuthUser.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "vesselId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role"
+        ],
+        "type": "object"
+      },
+      "Create-api-keyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Create-api-keyRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "Create-line-typeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -63,40 +158,89 @@
             "readOnly": true,
             "type": "string"
           },
-          "can_be_turned": {
-            "type": "boolean"
-          },
-          "construction_type": {
-            "type": "string"
-          },
-          "default_length": {
+          "breakLoad": {
             "format": "double",
             "type": "number"
           },
-          "line_type_id": {
+          "canBeTurned": {
+            "type": "boolean"
+          },
+          "constructionType": {
+            "type": "string"
+          },
+          "defaultLength": {
+            "format": "double",
+            "type": "number"
+          },
+          "lineTypeId": {
             "format": "uuid",
             "type": "string"
           },
-          "maker_id": {
+          "makerId": {
             "format": "uuid",
             "type": "string"
           },
-          "manufacturer_manual_ref": {
+          "manufacturerManualRef": {
             "type": "string"
           },
           "notes": {
             "type": "string"
           },
-          "product_name": {
+          "productName": {
             "minLength": 1,
+            "type": "string"
+          },
+          "swl": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "makerId",
+          "lineTypeId",
+          "productName",
+          "canBeTurned"
+        ],
+        "type": "object"
+      },
+      "Create-userRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Create-userRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "admin",
+              "vessel_user",
+              "readonly"
+            ],
+            "type": "string"
+          },
+          "vesselId": {
+            "format": "uuid",
             "type": "string"
           }
         },
         "required": [
-          "maker_id",
-          "line_type_id",
-          "product_name",
-          "can_be_turned"
+          "email",
+          "name",
+          "role"
         ],
         "type": "object"
       },
@@ -135,7 +279,7 @@
             "format": "int64",
             "type": "integer"
           },
-          "line_count": {
+          "lineCount": {
             "format": "int64",
             "type": "integer"
           }
@@ -143,7 +287,7 @@
         "required": [
           "id",
           "idx",
-          "line_count"
+          "lineCount"
         ],
         "type": "object"
       },
@@ -240,13 +384,13 @@
             "readOnly": true,
             "type": "string"
           },
-          "content_type": {
+          "contentType": {
             "type": "string"
           },
-          "file_base64": {
+          "fileBase64": {
             "type": "string"
           },
-          "file_name": {
+          "fileName": {
             "type": "string"
           },
           "kind": {
@@ -260,8 +404,8 @@
           }
         },
         "required": [
-          "file_base64",
-          "file_name"
+          "fileBase64",
+          "fileName"
         ],
         "type": "object"
       },
@@ -277,7 +421,7 @@
             "readOnly": true,
             "type": "string"
           },
-          "condition_at_capture": {
+          "conditionAtCapture": {
             "enum": [
               "Good",
               "Monitor",
@@ -285,13 +429,13 @@
             ],
             "type": "string"
           },
-          "content_type": {
+          "contentType": {
             "type": "string"
           },
-          "file_base64": {
+          "fileBase64": {
             "type": "string"
           },
-          "inspection_id": {
+          "inspectionId": {
             "type": "string"
           },
           "side": {
@@ -302,13 +446,13 @@
             ],
             "type": "string"
           },
-          "taken_at": {
+          "takenAt": {
             "format": "date",
             "type": "string"
           }
         },
         "required": [
-          "file_base64"
+          "fileBase64"
         ],
         "type": "object"
       },
@@ -324,17 +468,17 @@
             "readOnly": true,
             "type": "string"
           },
-          "content_type": {
+          "contentType": {
             "type": "string"
           },
-          "created_at": {
+          "createdAt": {
             "format": "date-time",
             "type": "string"
           },
-          "file_name": {
+          "fileName": {
             "type": "string"
           },
-          "file_ref": {
+          "fileRef": {
             "type": "string"
           },
           "id": {
@@ -343,30 +487,30 @@
           "kind": {
             "type": "string"
           },
-          "line_id": {
+          "lineId": {
             "type": "string"
           },
-          "product_id": {
+          "productId": {
             "type": "string"
           },
-          "size_bytes": {
+          "sizeBytes": {
             "format": "int64",
             "type": "integer"
           },
           "url": {
             "type": "string"
           },
-          "vessel_id": {
+          "vesselId": {
             "type": "string"
           }
         },
         "required": [
           "id",
           "kind",
-          "file_ref",
-          "file_name",
-          "size_bytes",
-          "created_at"
+          "fileRef",
+          "fileName",
+          "sizeBytes",
+          "createdAt"
         ],
         "type": "object"
       },
@@ -382,29 +526,29 @@
             "readOnly": true,
             "type": "string"
           },
-          "condition_at_capture": {
+          "conditionAtCapture": {
             "type": "string"
           },
-          "created_at": {
+          "createdAt": {
             "format": "date-time",
             "type": "string"
           },
-          "file_ref": {
+          "fileRef": {
             "type": "string"
           },
           "id": {
             "type": "string"
           },
-          "inspection_id": {
+          "inspectionId": {
             "type": "string"
           },
-          "line_id": {
+          "lineId": {
             "type": "string"
           },
           "side": {
             "type": "string"
           },
-          "taken_at": {
+          "takenAt": {
             "format": "date-time",
             "type": "string"
           },
@@ -414,9 +558,9 @@
         },
         "required": [
           "id",
-          "line_id",
-          "file_ref",
-          "created_at"
+          "lineId",
+          "fileRef",
+          "createdAt"
         ],
         "type": "object"
       },
@@ -453,7 +597,7 @@
             ],
             "type": "string"
           },
-          "vessel_id": {
+          "vesselId": {
             "description": "Configured vessel (onboard only)",
             "type": "string"
           }
@@ -502,7 +646,7 @@
             "readOnly": true,
             "type": "string"
           },
-          "condition_status": {
+          "conditionStatus": {
             "enum": [
               "Good",
               "Monitor",
@@ -510,27 +654,27 @@
             ],
             "type": "string"
           },
-          "external_id": {
+          "externalId": {
             "type": "string"
           },
-          "inspected_at": {
+          "inspectedAt": {
             "format": "date-time",
             "type": "string"
           },
-          "inspected_by": {
+          "inspectedBy": {
             "type": "string"
           },
           "notes": {
             "type": "string"
           },
-          "serial_number": {
+          "serialNumber": {
             "minLength": 1,
             "type": "string"
           }
         },
         "required": [
-          "serial_number",
-          "condition_status"
+          "serialNumber",
+          "conditionStatus"
         ],
         "type": "object"
       },
@@ -546,7 +690,7 @@
             "readOnly": true,
             "type": "string"
           },
-          "condition_status": {
+          "conditionStatus": {
             "enum": [
               "Good",
               "Monitor",
@@ -554,11 +698,11 @@
             ],
             "type": "string"
           },
-          "inspected_at": {
+          "inspectedAt": {
             "format": "date-time",
             "type": "string"
           },
-          "inspected_by": {
+          "inspectedBy": {
             "type": "string"
           },
           "notes": {
@@ -566,62 +710,62 @@
           }
         },
         "required": [
-          "condition_status"
+          "conditionStatus"
         ],
         "type": "object"
       },
       "InspLogbookEntry": {
         "additionalProperties": false,
         "properties": {
-          "condition_status": {
+          "conditionStatus": {
             "type": "string"
           },
-          "created_at": {
+          "createdAt": {
             "format": "date-time",
             "type": "string"
           },
-          "external_id": {
+          "externalId": {
             "type": "string"
           },
           "id": {
             "type": "string"
           },
-          "inspected_at": {
+          "inspectedAt": {
             "format": "date-time",
             "type": "string"
           },
-          "inspected_by": {
+          "inspectedBy": {
             "type": "string"
           },
-          "line_id": {
+          "lineId": {
             "type": "string"
           },
-          "line_name": {
+          "lineName": {
             "type": "string"
           },
           "notes": {
             "type": "string"
           },
-          "serial_number": {
+          "serialNumber": {
             "type": "string"
           },
           "source": {
             "type": "string"
           },
-          "vessel_id": {
+          "vesselId": {
             "type": "string"
           }
         },
         "required": [
-          "line_name",
-          "serial_number",
+          "lineName",
+          "serialNumber",
           "id",
-          "line_id",
-          "vessel_id",
-          "inspected_at",
+          "lineId",
+          "vesselId",
+          "inspectedAt",
           "source",
-          "condition_status",
-          "created_at"
+          "conditionStatus",
+          "createdAt"
         ],
         "type": "object"
       },
@@ -637,27 +781,27 @@
             "readOnly": true,
             "type": "string"
           },
-          "condition_status": {
+          "conditionStatus": {
             "type": "string"
           },
-          "created_at": {
+          "createdAt": {
             "format": "date-time",
             "type": "string"
           },
-          "external_id": {
+          "externalId": {
             "type": "string"
           },
           "id": {
             "type": "string"
           },
-          "inspected_at": {
+          "inspectedAt": {
             "format": "date-time",
             "type": "string"
           },
-          "inspected_by": {
+          "inspectedBy": {
             "type": "string"
           },
-          "line_id": {
+          "lineId": {
             "type": "string"
           },
           "notes": {
@@ -666,18 +810,18 @@
           "source": {
             "type": "string"
           },
-          "vessel_id": {
+          "vesselId": {
             "type": "string"
           }
         },
         "required": [
           "id",
-          "line_id",
-          "vessel_id",
-          "inspected_at",
+          "lineId",
+          "vesselId",
+          "inspectedAt",
           "source",
-          "condition_status",
-          "created_at"
+          "conditionStatus",
+          "createdAt"
         ],
         "type": "object"
       },
@@ -702,7 +846,7 @@
               "null"
             ]
           },
-          "vessel_id": {
+          "vesselId": {
             "type": "string"
           },
           "winches": {
@@ -716,7 +860,7 @@
           }
         },
         "required": [
-          "vessel_id",
+          "vesselId",
           "winches",
           "storage"
         ],
@@ -734,17 +878,21 @@
             "readOnly": true,
             "type": "string"
           },
-          "build_age_days": {
+          "breakLoad": {
+            "format": "double",
+            "type": "number"
+          },
+          "buildAgeDays": {
             "format": "int64",
             "type": "integer"
           },
-          "can_be_turned": {
+          "canBeTurned": {
             "type": "boolean"
           },
-          "certificate_number": {
+          "certificateNumber": {
             "type": "string"
           },
-          "certificate_ref": {
+          "certificateRef": {
             "type": "string"
           },
           "components": {
@@ -756,29 +904,29 @@
               "null"
             ]
           },
-          "construction_type": {
+          "constructionType": {
             "type": "string"
           },
-          "current_condition_status": {
+          "currentConditionStatus": {
             "type": "string"
           },
-          "current_drum_id": {
+          "currentDrumId": {
             "type": "string"
           },
-          "current_side": {
+          "currentSide": {
             "type": "string"
           },
-          "current_storage_id": {
+          "currentStorageId": {
             "type": "string"
           },
           "id": {
             "type": "string"
           },
-          "install_age_days": {
+          "installAgeDays": {
             "format": "int64",
             "type": "integer"
           },
-          "installation_date": {
+          "installationDate": {
             "format": "date-time",
             "type": "string"
           },
@@ -789,92 +937,96 @@
             "format": "double",
             "type": "number"
           },
-          "lifecycle_status": {
+          "lifecycleStatus": {
             "type": "string"
           },
-          "line_type_name": {
+          "lineTypeName": {
             "type": "string"
           },
-          "location_label": {
+          "locationLabel": {
             "type": "string"
           },
-          "maker_name": {
+          "makerName": {
             "type": "string"
           },
-          "manufacture_date": {
+          "manufactureDate": {
             "format": "date-time",
             "type": "string"
           },
           "name": {
             "type": "string"
           },
-          "next_inspection_due": {
+          "nextInspectionDue": {
             "format": "date-time",
             "type": "string"
           },
-          "parent_line_id": {
+          "parentLineId": {
             "type": "string"
           },
-          "product_id": {
+          "productId": {
             "type": "string"
           },
-          "product_name": {
+          "productName": {
             "type": "string"
           },
-          "serial_number": {
+          "serialNumber": {
             "type": "string"
           },
-          "side_a_age_days": {
+          "sideAAgeDays": {
             "format": "int64",
             "type": "integer"
           },
-          "side_a_change_date": {
+          "sideAChangeDate": {
             "format": "date-time",
             "type": "string"
           },
-          "side_a_condition": {
+          "sideACondition": {
             "type": "string"
           },
-          "side_b_age_days": {
+          "sideBAgeDays": {
             "format": "int64",
             "type": "integer"
           },
-          "side_b_change_date": {
+          "sideBChangeDate": {
             "format": "date-time",
             "type": "string"
           },
-          "side_b_condition": {
+          "sideBCondition": {
             "type": "string"
           },
-          "tag_number": {
+          "swl": {
+            "format": "double",
+            "type": "number"
+          },
+          "tagNumber": {
             "type": "string"
           },
-          "turn_due": {
+          "turnDue": {
             "type": "boolean"
           },
-          "vessel_id": {
+          "vesselId": {
             "type": "string"
           }
         },
         "required": [
-          "vessel_id",
-          "product_id",
-          "can_be_turned",
-          "side_a_age_days",
-          "side_b_age_days",
-          "turn_due",
+          "vesselId",
+          "productId",
+          "canBeTurned",
+          "sideAAgeDays",
+          "sideBAgeDays",
+          "turnDue",
           "components",
           "id",
           "name",
-          "serial_number",
-          "lifecycle_status",
-          "product_name",
-          "maker_name",
-          "line_type_name",
-          "location_label",
+          "serialNumber",
+          "lifecycleStatus",
+          "productName",
+          "makerName",
+          "lineTypeName",
+          "locationLabel",
           "installed",
-          "install_age_days",
-          "build_age_days"
+          "installAgeDays",
+          "buildAgeDays"
         ],
         "type": "object"
       },
@@ -890,10 +1042,10 @@
             "readOnly": true,
             "type": "string"
           },
-          "certificate_number": {
+          "certificateNumber": {
             "type": "string"
           },
-          "current_side": {
+          "currentSide": {
             "enum": [
               "A",
               "B",
@@ -901,7 +1053,7 @@
             ],
             "type": "string"
           },
-          "installation_date": {
+          "installationDate": {
             "format": "date",
             "type": "string"
           },
@@ -909,7 +1061,7 @@
             "format": "double",
             "type": "number"
           },
-          "lifecycle_status": {
+          "lifecycleStatus": {
             "enum": [
               "ordered",
               "active",
@@ -918,7 +1070,7 @@
             ],
             "type": "string"
           },
-          "manufacture_date": {
+          "manufactureDate": {
             "format": "date",
             "type": "string"
           },
@@ -926,98 +1078,98 @@
             "minLength": 1,
             "type": "string"
           },
-          "product_id": {
+          "productId": {
             "format": "uuid",
             "type": "string"
           },
-          "serial_number": {
+          "serialNumber": {
             "minLength": 1,
             "type": "string"
           },
-          "tag_number": {
+          "tagNumber": {
             "type": "string"
           }
         },
         "required": [
-          "product_id",
+          "productId",
           "name",
-          "serial_number"
+          "serialNumber"
         ],
         "type": "object"
       },
       "LineRow": {
         "additionalProperties": false,
         "properties": {
-          "build_age_days": {
+          "buildAgeDays": {
             "format": "int64",
             "type": "integer"
           },
-          "certificate_number": {
+          "certificateNumber": {
             "type": "string"
           },
-          "current_condition_status": {
+          "currentConditionStatus": {
             "type": "string"
           },
-          "current_drum_id": {
+          "currentDrumId": {
             "type": "string"
           },
-          "current_side": {
+          "currentSide": {
             "type": "string"
           },
-          "current_storage_id": {
+          "currentStorageId": {
             "type": "string"
           },
           "id": {
             "type": "string"
           },
-          "install_age_days": {
+          "installAgeDays": {
             "format": "int64",
             "type": "integer"
           },
           "installed": {
             "type": "boolean"
           },
-          "lifecycle_status": {
+          "lifecycleStatus": {
             "type": "string"
           },
-          "line_type_name": {
+          "lineTypeName": {
             "type": "string"
           },
-          "location_label": {
+          "locationLabel": {
             "type": "string"
           },
-          "maker_name": {
+          "makerName": {
             "type": "string"
           },
           "name": {
             "type": "string"
           },
-          "next_inspection_due": {
+          "nextInspectionDue": {
             "format": "date-time",
             "type": "string"
           },
-          "product_name": {
+          "productName": {
             "type": "string"
           },
-          "serial_number": {
+          "serialNumber": {
             "type": "string"
           },
-          "tag_number": {
+          "tagNumber": {
             "type": "string"
           }
         },
         "required": [
           "id",
           "name",
-          "serial_number",
-          "lifecycle_status",
-          "product_name",
-          "maker_name",
-          "line_type_name",
-          "location_label",
+          "serialNumber",
+          "lifecycleStatus",
+          "productName",
+          "makerName",
+          "lineTypeName",
+          "locationLabel",
           "installed",
-          "install_age_days",
-          "build_age_days"
+          "installAgeDays",
+          "buildAgeDays"
         ],
         "type": "object"
       },
@@ -1121,61 +1273,111 @@
             "readOnly": true,
             "type": "string"
           },
-          "to_drum_id": {
+          "toDrumId": {
             "type": "string"
           },
-          "to_storage_id": {
+          "toStorageId": {
             "type": "string"
           }
         },
         "type": "object"
       },
-      "OverAttentionItem": {
+      "NewAPIKey": {
         "additionalProperties": false,
         "properties": {
-          "condition_status": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/NewAPIKey.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
             "type": "string"
           },
           "id": {
             "type": "string"
           },
-          "location_label": {
+          "keyPrefix": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
             "type": "string"
           },
           "name": {
             "type": "string"
           },
-          "serial_number": {
+          "plainKey": {
+            "type": "string"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "plainKey",
+          "id",
+          "userId",
+          "name",
+          "keyPrefix",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "OverAttentionItem": {
+        "additionalProperties": false,
+        "properties": {
+          "conditionStatus": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "locationLabel": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "serialNumber": {
             "type": "string"
           }
         },
         "required": [
           "id",
           "name",
-          "serial_number",
-          "condition_status",
-          "location_label"
+          "serialNumber",
+          "conditionStatus",
+          "locationLabel"
         ],
         "type": "object"
       },
       "OverRecentInspection": {
         "additionalProperties": false,
         "properties": {
-          "condition_status": {
+          "conditionStatus": {
             "type": "string"
           },
-          "inspected_at": {
+          "inspectedAt": {
             "format": "date-time",
             "type": "string"
           },
-          "line_name": {
+          "lineName": {
             "type": "string"
           }
         },
         "required": [
-          "line_name",
-          "condition_status",
-          "inspected_at"
+          "lineName",
+          "conditionStatus",
+          "inspectedAt"
         ],
         "type": "object"
       },
@@ -1217,7 +1419,7 @@
             "format": "int64",
             "type": "integer"
           },
-          "active_lines": {
+          "activeLines": {
             "format": "int64",
             "type": "integer"
           },
@@ -1230,7 +1432,7 @@
               "null"
             ]
           },
-          "avg_install_age_days": {
+          "avgInstallAgeDays": {
             "format": "int64",
             "type": "integer"
           },
@@ -1238,7 +1440,7 @@
             "format": "int64",
             "type": "integer"
           },
-          "inspections_due": {
+          "inspectionsDue": {
             "format": "int64",
             "type": "integer"
           },
@@ -1246,11 +1448,11 @@
             "format": "int64",
             "type": "integer"
           },
-          "needing_attention": {
+          "needingAttention": {
             "format": "int64",
             "type": "integer"
           },
-          "recent_inspections": {
+          "recentInspections": {
             "items": {
               "$ref": "#/components/schemas/OverRecentInspection"
             },
@@ -1274,16 +1476,16 @@
           }
         },
         "required": [
-          "active_lines",
+          "activeLines",
           "spares",
           "good",
           "monitor",
           "action",
-          "needing_attention",
-          "inspections_due",
-          "avg_install_age_days",
+          "needingAttention",
+          "inspectionsDue",
+          "avgInstallAgeDays",
           "attention",
-          "recent_inspections",
+          "recentInspections",
           "trend"
         ],
         "type": "object"
@@ -1300,49 +1502,57 @@
             "readOnly": true,
             "type": "string"
           },
-          "can_be_turned": {
+          "breakLoad": {
+            "format": "double",
+            "type": "number"
+          },
+          "canBeTurned": {
             "type": "boolean"
           },
-          "construction_type": {
+          "constructionType": {
             "type": "string"
           },
-          "default_length": {
+          "defaultLength": {
             "format": "double",
             "type": "number"
           },
           "id": {
             "type": "string"
           },
-          "line_type_id": {
+          "lineTypeId": {
             "type": "string"
           },
-          "line_type_name": {
+          "lineTypeName": {
             "type": "string"
           },
-          "maker_id": {
+          "makerId": {
             "type": "string"
           },
-          "maker_name": {
+          "makerName": {
             "type": "string"
           },
-          "manufacturer_manual_ref": {
+          "manufacturerManualRef": {
             "type": "string"
           },
           "notes": {
             "type": "string"
           },
-          "product_name": {
+          "productName": {
             "type": "string"
+          },
+          "swl": {
+            "format": "double",
+            "type": "number"
           }
         },
         "required": [
           "id",
-          "maker_id",
-          "maker_name",
-          "line_type_id",
-          "line_type_name",
-          "product_name",
-          "can_be_turned"
+          "makerId",
+          "makerName",
+          "lineTypeId",
+          "lineTypeName",
+          "productName",
+          "canBeTurned"
         ],
         "type": "object"
       },
@@ -1392,17 +1602,17 @@
           "label": {
             "type": "string"
           },
-          "line_count": {
+          "lineCount": {
             "format": "int64",
             "type": "integer"
           },
-          "on_map": {
+          "onMap": {
             "type": "boolean"
           },
           "station": {
             "type": "string"
           },
-          "worst_status": {
+          "worstStatus": {
             "type": "string"
           },
           "x": {
@@ -1418,10 +1628,10 @@
           "id",
           "label",
           "station",
-          "on_map",
+          "onMap",
           "x",
           "y",
-          "line_count"
+          "lineCount"
         ],
         "type": "object"
       },
@@ -1435,7 +1645,7 @@
             "minLength": 1,
             "type": "string"
           },
-          "on_map": {
+          "onMap": {
             "type": "boolean"
           },
           "station": {
@@ -1494,6 +1704,77 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "Update-userRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Update-userRequest.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "role": {
+            "enum": [
+              "admin",
+              "vessel_user",
+              "readonly"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "User": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/User.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "vesselId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "role",
+          "active",
+          "createdAt"
+        ],
         "type": "object"
       },
       "Vessel": {
@@ -1559,7 +1840,7 @@
           "name": {
             "type": "string"
           },
-          "payload_template": {
+          "payloadTemplate": {
             "description": "Body template with {{variable}} substitution. Empty = default JSON envelope.",
             "type": "string"
           },
@@ -1622,7 +1903,7 @@
           "active": {
             "type": "boolean"
           },
-          "created_at": {
+          "createdAt": {
             "format": "date-time",
             "type": "string"
           },
@@ -1635,7 +1916,7 @@
               "null"
             ]
           },
-          "has_secret": {
+          "hasSecret": {
             "type": "boolean"
           },
           "headers": {
@@ -1650,13 +1931,13 @@
           "name": {
             "type": "string"
           },
-          "payload_template": {
+          "payloadTemplate": {
             "type": "string"
           },
           "url": {
             "type": "string"
           },
-          "vessel_id": {
+          "vesselId": {
             "type": "string"
           }
         },
@@ -1667,18 +1948,22 @@
           "events",
           "headers",
           "active",
-          "has_secret",
-          "created_at"
+          "hasSecret",
+          "createdAt"
         ],
         "type": "object"
       },
       "Winch": {
         "additionalProperties": false,
         "properties": {
-          "drive_type": {
+          "breakLoad": {
+            "format": "double",
+            "type": "number"
+          },
+          "driveType": {
             "type": "string"
           },
-          "drum_count": {
+          "drumCount": {
             "format": "int64",
             "type": "integer"
           },
@@ -1697,7 +1982,7 @@
           "label": {
             "type": "string"
           },
-          "label_auto": {
+          "labelAuto": {
             "type": "boolean"
           },
           "orientation": {
@@ -1707,7 +1992,11 @@
           "station": {
             "type": "string"
           },
-          "worst_status": {
+          "swl": {
+            "format": "double",
+            "type": "number"
+          },
+          "worstStatus": {
             "type": "string"
           },
           "x": {
@@ -1726,9 +2015,9 @@
           "x",
           "y",
           "orientation",
-          "drum_count",
-          "drive_type",
-          "label_auto",
+          "drumCount",
+          "driveType",
+          "labelAuto",
           "drums"
         ],
         "type": "object"
@@ -1736,14 +2025,18 @@
       "WinchBody": {
         "additionalProperties": false,
         "properties": {
-          "drive_type": {
+          "breakLoad": {
+            "format": "double",
+            "type": "number"
+          },
+          "driveType": {
             "enum": [
               "electric",
               "hydraulic"
             ],
             "type": "string"
           },
-          "drum_count": {
+          "drumCount": {
             "format": "int64",
             "maximum": 6,
             "minimum": 1,
@@ -1756,7 +2049,7 @@
             "minLength": 1,
             "type": "string"
           },
-          "label_auto": {
+          "labelAuto": {
             "type": "boolean"
           },
           "orientation": {
@@ -1777,6 +2070,10 @@
             ],
             "type": "string"
           },
+          "swl": {
+            "format": "double",
+            "type": "number"
+          },
           "x": {
             "format": "double",
             "type": "number"
@@ -1792,7 +2089,7 @@
           "x",
           "y",
           "orientation",
-          "drum_count"
+          "drumCount"
         ],
         "type": "object"
       }
@@ -1805,6 +2102,41 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api-keys/{id}": {
+      "delete": {
+        "operationId": "revoke-api-key",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Revoke an API key",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health",
@@ -1884,7 +2216,7 @@
           {
             "explode": false,
             "in": "query",
-            "name": "vessel_id",
+            "name": "vesselId",
             "schema": {
               "type": "string"
             }
@@ -2579,6 +2911,37 @@
         ]
       }
     },
+    "/me": {
+      "get": {
+        "operationId": "whoami",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUser"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Current authenticated user",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/photos/{id}": {
       "delete": {
         "operationId": "file-del-photo",
@@ -2621,7 +2984,7 @@
           {
             "explode": false,
             "in": "query",
-            "name": "maker_id",
+            "name": "makerId",
             "schema": {
               "type": "string"
             }
@@ -2629,7 +2992,7 @@
           {
             "explode": false,
             "in": "query",
-            "name": "line_type_id",
+            "name": "lineTypeId",
             "schema": {
               "type": "string"
             }
@@ -2757,7 +3120,7 @@
           {
             "explode": false,
             "in": "query",
-            "name": "vessel_id",
+            "name": "vesselId",
             "schema": {
               "type": "string"
             }
@@ -2813,6 +3176,232 @@
         "summary": "Download a condition report (CSV or PDF)",
         "tags": [
           "inspections"
+        ]
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "list-users",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List users",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "operationId": "create-user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create-userRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create user",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "patch": {
+        "operationId": "update-user",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Update-userRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update user (active/role)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}/api-keys": {
+      "get": {
+        "operationId": "list-api-keys",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/APIKey"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List a user's API keys (metadata only)",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "operationId": "create-api-key",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create-api-keyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewAPIKey"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Issue an API key (plaintext returned once)",
+        "tags": [
+          "users"
         ]
       }
     },
@@ -2892,13 +3481,13 @@
         ]
       }
     },
-    "/vessels/{vessel_id}": {
+    "/vessels/{vesselId}": {
       "get": {
         "operationId": "get-vessel",
         "parameters": [
           {
             "in": "path",
-            "name": "vessel_id",
+            "name": "vesselId",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -2934,13 +3523,13 @@
         ]
       }
     },
-    "/vessels/{vessel_id}/layout": {
+    "/vessels/{vesselId}/layout": {
       "get": {
         "operationId": "get-layout",
         "parameters": [
           {
             "in": "path",
-            "name": "vessel_id",
+            "name": "vesselId",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -2980,7 +3569,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "vessel_id",
+            "name": "vesselId",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -3026,13 +3615,13 @@
         ]
       }
     },
-    "/vessels/{vessel_id}/lines": {
+    "/vessels/{vesselId}/lines": {
       "get": {
         "operationId": "list-lines",
         "parameters": [
           {
             "in": "path",
-            "name": "vessel_id",
+            "name": "vesselId",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -3042,7 +3631,7 @@
           {
             "explode": false,
             "in": "query",
-            "name": "line_type_id",
+            "name": "lineTypeId",
             "schema": {
               "type": "string"
             }
@@ -3131,7 +3720,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "vessel_id",
+            "name": "vesselId",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -3177,13 +3766,13 @@
         ]
       }
     },
-    "/vessels/{vessel_id}/overview": {
+    "/vessels/{vesselId}/overview": {
       "get": {
         "operationId": "over-get",
         "parameters": [
           {
             "in": "path",
-            "name": "vessel_id",
+            "name": "vesselId",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -3263,7 +3852,7 @@
           {
             "explode": false,
             "in": "query",
-            "name": "vessel_id",
+            "name": "vesselId",
             "schema": {
               "type": "string"
             }
@@ -3308,7 +3897,7 @@
           {
             "explode": false,
             "in": "query",
-            "name": "vessel_id",
+            "name": "vesselId",
             "schema": {
               "type": "string"
             }

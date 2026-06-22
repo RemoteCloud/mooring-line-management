@@ -52,7 +52,7 @@ func (s *Store) GetLayout(ctx context.Context, vesselID string) (Layout, error) 
 
 	// winches
 	wr, err := s.Pool.Query(ctx, `
-SELECT id, label, station, x, y, orientation, drum_count, drive_type, label_auto
+SELECT id, label, station, x, y, orientation, drum_count, drive_type, label_auto, swl, break_load
 FROM winch_location WHERE vessel_id=$1 ORDER BY station, label`, vesselID)
 	if err != nil {
 		return out, err
@@ -60,7 +60,7 @@ FROM winch_location WHERE vessel_id=$1 ORDER BY station, label`, vesselID)
 	winchByID := map[string]*Winch{}
 	for wr.Next() {
 		var w Winch
-		if err := wr.Scan(&w.ID, &w.Label, &w.Station, &w.X, &w.Y, &w.Orientation, &w.DrumCount, &w.DriveType, &w.LabelAuto); err != nil {
+		if err := wr.Scan(&w.ID, &w.Label, &w.Station, &w.X, &w.Y, &w.Orientation, &w.DrumCount, &w.DriveType, &w.LabelAuto, &w.SWL, &w.BreakLoad); err != nil {
 			wr.Close()
 			return out, err
 		}
@@ -168,6 +168,8 @@ type WinchInput struct {
 	DrumCount   int
 	DriveType   string
 	LabelAuto   bool
+	SWL         *float64
+	BreakLoad   *float64
 }
 
 type StorageInput struct {
@@ -202,16 +204,16 @@ func (s *Store) SaveLayout(ctx context.Context, vesselID string, in SaveLayoutIn
 		if id == "" {
 			id = newID()
 			if _, err := tx.Exec(ctx, `
-INSERT INTO winch_location (id, vessel_id, label, station, x, y, orientation, drum_count, drive_type, label_auto)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-				id, vesselID, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, w.DriveType, w.LabelAuto); err != nil {
+INSERT INTO winch_location (id, vessel_id, label, station, x, y, orientation, drum_count, drive_type, label_auto, swl, break_load)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+				id, vesselID, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, w.DriveType, w.LabelAuto, w.SWL, w.BreakLoad); err != nil {
 				return err
 			}
 		} else {
 			if _, err := tx.Exec(ctx, `
-UPDATE winch_location SET label=$2, station=$3, x=$4, y=$5, orientation=$6, drum_count=$7, drive_type=$8, label_auto=$9
+UPDATE winch_location SET label=$2, station=$3, x=$4, y=$5, orientation=$6, drum_count=$7, drive_type=$8, label_auto=$9, swl=$11, break_load=$12
 WHERE id=$1 AND vessel_id=$10`,
-				id, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, w.DriveType, w.LabelAuto, vesselID); err != nil {
+				id, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, w.DriveType, w.LabelAuto, vesselID, w.SWL, w.BreakLoad); err != nil {
 				return err
 			}
 		}
@@ -285,7 +287,7 @@ UPDATE storage_location SET label=$2, station=$3, on_map=$4, x=$5, y=$6 WHERE id
 		}
 	}
 
-	if err := writeOutbox(ctx, tx, vesselID, "layout", vesselID, "layout.updated", map[string]any{"vessel_id": vesselID}); err != nil {
+	if err := writeOutbox(ctx, tx, vesselID, "layout", vesselID, "layout.updated", map[string]any{"vesselId": vesselID}); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

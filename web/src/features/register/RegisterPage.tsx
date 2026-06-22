@@ -8,19 +8,19 @@ import { AddLineDialog } from "./AddLineDialog";
 
 type SortKey = keyof Pick<
   LineRow,
-  "name" | "product_name" | "maker_name" | "line_type_name" | "location_label" |
-  "current_condition_status" | "current_side" | "install_age_days" | "lifecycle_status"
+  "name" | "productName" | "makerName" | "lineTypeName" | "locationLabel" |
+  "currentConditionStatus" | "currentSide" | "installAgeDays" | "lifecycleStatus"
 >;
 
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "name", label: "Line" },
-  { key: "product_name", label: "Product" },
-  { key: "line_type_name", label: "Type" },
-  { key: "location_label", label: "Location" },
-  { key: "current_condition_status", label: "Condition" },
-  { key: "current_side", label: "Side" },
-  { key: "install_age_days", label: "Install age" },
-  { key: "lifecycle_status", label: "Status" },
+  { key: "productName", label: "Product" },
+  { key: "lineTypeName", label: "Type" },
+  { key: "locationLabel", label: "Location" },
+  { key: "currentConditionStatus", label: "Condition" },
+  { key: "currentSide", label: "Side" },
+  { key: "installAgeDays", label: "Install age" },
+  { key: "lifecycleStatus", label: "Status" },
 ];
 
 export function RegisterPage() {
@@ -39,7 +39,7 @@ export function RegisterPage() {
   const filters: LineFilters = {
     q: q || undefined,
     condition,
-    line_type_id: lineTypeId || undefined,
+    lineTypeId: lineTypeId || undefined,
     placement: placement || undefined,
   };
   const { data, isLoading } = useLines(vesselId, filters);
@@ -115,18 +115,18 @@ export function RegisterPage() {
               <tr key={r.id} onClick={() => navigate(`/lines/${r.id}`)}>
                 <td>
                   <div>{r.name}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>{r.serial_number}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{r.serialNumber}</div>
                 </td>
                 <td>
-                  <div>{r.product_name}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>{r.maker_name}</div>
+                  <div>{r.productName}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{r.makerName}</div>
                 </td>
-                <td>{r.line_type_name}</td>
-                <td>{r.location_label}</td>
-                <td><StatusDot condition={r.current_condition_status as never} /> {r.current_condition_status || "—"}</td>
-                <td>{r.current_side || "—"}</td>
-                <td>{ageLabel(r.install_age_days)}</td>
-                <td><LifecycleBadge status={r.lifecycle_status} /></td>
+                <td>{r.lineTypeName}</td>
+                <td>{r.locationLabel}</td>
+                <td><StatusDot condition={r.currentConditionStatus as never} /> {r.currentConditionStatus || "—"}</td>
+                <td>{r.currentSide || "—"}</td>
+                <td>{ageLabel(r.installAgeDays)}</td>
+                <td><LifecycleBadge status={r.lifecycleStatus} /></td>
               </tr>
             ))}
             {rows.length === 0 && !isLoading && (

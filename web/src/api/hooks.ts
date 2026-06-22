@@ -63,8 +63,8 @@ export function useVesselLayout(vesselId: string | undefined) {
     enabled: !!vesselId,
     queryKey: ["layout", vesselId],
     queryFn: async () => {
-      const { data, error } = await api.GET("/vessels/{vessel_id}/layout", {
-        params: { path: { vessel_id: vesselId! } },
+      const { data, error } = await api.GET("/vessels/{vesselId}/layout", {
+        params: { path: { vesselId: vesselId! } },
       });
       if (error) throw error;
       return data as Layout;
@@ -73,7 +73,7 @@ export function useVesselLayout(vesselId: string | undefined) {
 }
 
 export type LineFilters = {
-  line_type_id?: string;
+  lineTypeId?: string;
   condition?: "Good" | "Monitor" | "Action";
   placement?: "installed" | "spare";
   q?: string;
@@ -84,9 +84,9 @@ export function useLines(vesselId: string | undefined, filters: LineFilters) {
     enabled: !!vesselId,
     queryKey: ["lines", vesselId, filters],
     queryFn: async () => {
-      const { data, error } = await api.GET("/vessels/{vessel_id}/lines", {
+      const { data, error } = await api.GET("/vessels/{vesselId}/lines", {
         params: {
-          path: { vessel_id: vesselId! },
+          path: { vesselId: vesselId! },
           query: { ...filters, limit: 500 },
         },
       });
@@ -114,8 +114,8 @@ export function useRegisterLine(vesselId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: components["schemas"]["LineBody"]) => {
-      const { data, error } = await api.POST("/vessels/{vessel_id}/lines", {
-        params: { path: { vessel_id: vesselId } },
+      const { data, error } = await api.POST("/vessels/{vesselId}/lines", {
+        params: { path: { vesselId: vesselId } },
         body,
       });
       if (error) throw error;
@@ -135,7 +135,7 @@ export function useMoveLine(vesselId: string | undefined) {
     mutationFn: async ({ lineId, toDrumId, toStorageId }) => {
       const { data, error, response } = await api.POST("/lines/{id}/move", {
         params: { path: { id: lineId } },
-        body: { to_drum_id: toDrumId, to_storage_id: toStorageId },
+        body: { toDrumId: toDrumId, toStorageId: toStorageId },
       });
       if (error || !data) {
         const detail = (error as { detail?: string } | undefined)?.detail;
@@ -161,8 +161,8 @@ export function useSaveLayout(vesselId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: { winches: unknown[]; storage: unknown[] }) => {
-      const { data, error } = await api.PUT("/vessels/{vessel_id}/layout", {
-        params: { path: { vessel_id: vesselId } },
+      const { data, error } = await api.PUT("/vessels/{vesselId}/layout", {
+        params: { path: { vesselId: vesselId } },
         body: body as never,
       });
       if (error) throw error;

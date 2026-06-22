@@ -373,3 +373,11 @@ table.grid tbody tr:hover { background: var(--bg-elev-2); }
 .err-row { color: var(--action); font-size: 13px; padding: 8px 0; }
 .linkbtn.danger { color: var(--action); }
 .mono { font-family: var(--mono); font-size: 13px; }
+
+/* Unlock gate — basic API-key entry shown before the app loads. */
+.unlock-gate { min-height: 100vh; display: grid; place-items: center; background: var(--bg); padding: 24px; }
+.unlock-card { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 12px;
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px; padding: 28px; }
+.unlock-card h1 { margin: 0; font-size: 20px; }
+.unlock-card p { margin: 0; }
+.unlock-card .btn { margin-top: 4px; }

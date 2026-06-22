@@ -195,9 +195,9 @@ func deliveryVars(e outboxEvent) map[string]string {
 		"event.id":           e.ID,
 		"event.type":         e.EventType,
 		"event.time":         e.CreatedAt.UTC().Format(time.RFC3339),
-		"event.aggregate":    e.Aggregate,
-		"event.aggregate_id": e.AggregateID,
-		"vessel.id":          e.VesselID,
+		"event.aggregate":   e.Aggregate,
+		"event.aggregateId": e.AggregateID,
+		"vessel.id":         e.VesselID,
 	}
 	var pl map[string]any
 	if json.Unmarshal(e.Payload, &pl) == nil {
@@ -210,13 +210,13 @@ func deliveryVars(e outboxEvent) map[string]string {
 
 func defaultBody(e outboxEvent) []byte {
 	b, _ := json.Marshal(map[string]any{
-		"event":        e.EventType,
-		"event_id":     e.ID,
-		"vessel_id":    e.VesselID,
-		"aggregate":    e.Aggregate,
-		"aggregate_id": e.AggregateID,
-		"created_at":   e.CreatedAt.UTC().Format(time.RFC3339),
-		"data":         json.RawMessage(e.Payload),
+		"event":       e.EventType,
+		"eventId":     e.ID,
+		"vesselId":    e.VesselID,
+		"aggregate":   e.Aggregate,
+		"aggregateId": e.AggregateID,
+		"createdAt":   e.CreatedAt.UTC().Format(time.RFC3339),
+		"data":        json.RawMessage(e.Payload),
 	})
 	return b
 }

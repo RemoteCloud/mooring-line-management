@@ -5,27 +5,27 @@ import { API_BASE } from "../../config";
 
 export interface FilePhoto {
   id: string;
-  line_id: string;
-  inspection_id?: string;
-  file_ref: string;
-  taken_at?: string;
+  lineId: string;
+  inspectionId?: string;
+  fileRef: string;
+  takenAt?: string;
   side?: string;
-  condition_at_capture?: string;
-  created_at: string;
+  conditionAtCapture?: string;
+  createdAt: string;
   url?: string;
 }
 
 export interface FileDoc {
   id: string;
-  line_id?: string;
-  product_id?: string;
-  vessel_id?: string;
+  lineId?: string;
+  productId?: string;
+  vesselId?: string;
   kind: string;
-  file_ref: string;
-  file_name: string;
-  content_type?: string;
-  size_bytes: number;
-  created_at: string;
+  fileRef: string;
+  fileName: string;
+  contentType?: string;
+  sizeBytes: number;
+  createdAt: string;
   url?: string;
 }
 
@@ -66,12 +66,12 @@ export function usePhotos(lineId: string) {
 }
 
 export interface UploadPhotoInput {
-  file_base64: string;
-  content_type?: string;
-  taken_at?: string;
+  fileBase64: string;
+  contentType?: string;
+  takenAt?: string;
   side?: string;
-  condition_at_capture?: string;
-  inspection_id?: string;
+  conditionAtCapture?: string;
+  inspectionId?: string;
 }
 
 // postPhoto / postDocument take the line id as a parameter so callers that only
@@ -114,9 +114,9 @@ export function useDocuments(lineId: string) {
 }
 
 export interface UploadCertificateInput {
-  file_base64: string;
-  file_name: string;
-  content_type?: string;
+  fileBase64: string;
+  fileName: string;
+  contentType?: string;
   kind?: string;
 }
 

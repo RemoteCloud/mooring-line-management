@@ -33,12 +33,12 @@ func registerFiles(api huma.API, s *Server) {
 	}, func(ctx context.Context, in *struct {
 		ID   string `path:"id" format:"uuid"`
 		Body struct {
-			FileBase64         string `json:"file_base64"`
-			ContentType        string `json:"content_type,omitempty"`
-			TakenAt            string `json:"taken_at,omitempty" format:"date"`
+			FileBase64         string `json:"fileBase64"`
+			ContentType        string `json:"contentType,omitempty"`
+			TakenAt            string `json:"takenAt,omitempty" format:"date"`
 			Side               string `json:"side,omitempty" enum:"A,B,n/a"`
-			ConditionAtCapture string `json:"condition_at_capture,omitempty" enum:"Good,Monitor,Action"`
-			InspectionID       string `json:"inspection_id,omitempty"`
+			ConditionAtCapture string `json:"conditionAtCapture,omitempty" enum:"Good,Monitor,Action"`
+			InspectionID       string `json:"inspectionId,omitempty"`
 		}
 	}) (*struct{ Body store.FilePhoto }, error) {
 		if fs == nil {
@@ -113,9 +113,9 @@ func registerFiles(api huma.API, s *Server) {
 	}, func(ctx context.Context, in *struct {
 		ID   string `path:"id" format:"uuid"`
 		Body struct {
-			FileBase64  string `json:"file_base64"`
-			FileName    string `json:"file_name"`
-			ContentType string `json:"content_type,omitempty"`
+			FileBase64  string `json:"fileBase64"`
+			FileName    string `json:"fileName"`
+			ContentType string `json:"contentType,omitempty"`
 			Kind        string `json:"kind,omitempty" enum:"certificate,manual,guide,delivery"`
 		}
 	}) (*struct{ Body store.FileDoc }, error) {

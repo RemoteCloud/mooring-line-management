@@ -44,13 +44,13 @@ function PhotoSection({ lineId }: { lineId: string }) {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!file) return;
-    const file_base64 = await fileToBase64(file);
+    const fileBase64 = await fileToBase64(file);
     await upload.mutateAsync({
-      file_base64,
-      content_type: file.type || undefined,
-      taken_at: takenAt || undefined,
+      fileBase64,
+      contentType: file.type || undefined,
+      takenAt: takenAt || undefined,
       side,
-      condition_at_capture: condition,
+      conditionAtCapture: condition,
     });
     setFile(null);
     setTakenAt("");
@@ -108,11 +108,11 @@ function DocumentSection({ lineId }: { lineId: string }) {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!file) return;
-    const file_base64 = await fileToBase64(file);
+    const fileBase64 = await fileToBase64(file);
     await upload.mutateAsync({
-      file_base64,
-      file_name: file.name,
-      content_type: file.type || undefined,
+      fileBase64,
+      fileName: file.name,
+      contentType: file.type || undefined,
       kind,
     });
     setFile(null);
@@ -151,10 +151,10 @@ function DocumentSection({ lineId }: { lineId: string }) {
             <tbody>
               {docs.map((d) => (
                 <tr key={d.id}>
-                  <td>{d.file_name}</td>
+                  <td>{d.fileName}</td>
                   <td>{d.kind}</td>
-                  <td>{humanSize(d.size_bytes)}</td>
-                  <td>{dateLabel(d.created_at)}</td>
+                  <td>{humanSize(d.sizeBytes)}</td>
+                  <td>{dateLabel(d.createdAt)}</td>
                   <td>
                     {d.url ? (
                       <a className="btn" href={d.url} target="_blank" rel="noreferrer">Download</a>

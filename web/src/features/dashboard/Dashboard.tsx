@@ -33,19 +33,19 @@ function OverviewBody({ o }: { o: Overview }) {
       <div className="cards">
         <div className="card">
           <div className="kpi-label">Active lines</div>
-          <div className="kpi-value">{o.active_lines}</div>
+          <div className="kpi-value">{o.activeLines}</div>
         </div>
         <div className="card">
           <div className="kpi-label">Needing attention</div>
-          <div className="kpi-value">{o.needing_attention}</div>
+          <div className="kpi-value">{o.needingAttention}</div>
         </div>
         <div className="card">
           <div className="kpi-label">Inspections due</div>
-          <div className="kpi-value">{o.inspections_due}</div>
+          <div className="kpi-value">{o.inspectionsDue}</div>
         </div>
         <div className="card">
           <div className="kpi-label">Avg install age</div>
-          <div className="kpi-value">{ageLabel(o.avg_install_age_days)}</div>
+          <div className="kpi-value">{ageLabel(o.avgInstallAgeDays)}</div>
         </div>
       </div>
 
@@ -158,14 +158,14 @@ function AttentionList({ o }: { o: Overview }) {
     <div className="attn-list">
       {o.attention.map((it) => (
         <Link key={it.id} to={`/lines/${it.id}`} className="attn-item">
-          <StatusDot condition={it.condition_status as Condition} />
+          <StatusDot condition={it.conditionStatus as Condition} />
           <span className="attn-main">
             <span className="attn-name">{it.name}</span>
-            <span className="attn-meta">{it.serial_number}</span>
+            <span className="attn-meta">{it.serialNumber}</span>
           </span>
-          <span className="attn-loc">{it.location_label}</span>
-          <span className={"attn-cond " + condClass(it.condition_status as Condition)}>
-            {it.condition_status}
+          <span className="attn-loc">{it.locationLabel}</span>
+          <span className={"attn-cond " + condClass(it.conditionStatus as Condition)}>
+            {it.conditionStatus}
           </span>
         </Link>
       ))}
@@ -201,22 +201,22 @@ function TrendChart({ points }: { points: OverTrendPoint[] }) {
 }
 
 function RecentTable({ o }: { o: Overview }) {
-  if (o.recent_inspections.length === 0) {
+  if (o.recentInspections.length === 0) {
     return <div className="muted">No inspections recorded.</div>;
   }
   return (
     <table className="recent-table">
       <tbody>
-        {o.recent_inspections.map((ri, i) => (
+        {o.recentInspections.map((ri, i) => (
           <tr key={i}>
-            <td>{ri.line_name}</td>
+            <td>{ri.lineName}</td>
             <td>
               <span className="recent-cond">
-                <StatusDot condition={ri.condition_status as Condition} />
-                {ri.condition_status || "—"}
+                <StatusDot condition={ri.conditionStatus as Condition} />
+                {ri.conditionStatus || "—"}
               </span>
             </td>
-            <td className="muted">{dateLabel(ri.inspected_at)}</td>
+            <td className="muted">{dateLabel(ri.inspectedAt)}</td>
           </tr>
         ))}
       </tbody>

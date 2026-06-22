@@ -5,15 +5,15 @@ import { API_BASE } from "../../config";
 
 export interface WebhookSubscription {
   id: string;
-  vessel_id?: string;
+  vesselId?: string;
   name: string;
   url: string;
   events: string[];
   headers: Record<string, string>;
-  payload_template?: string;
+  payloadTemplate?: string;
   active: boolean;
-  has_secret: boolean;
-  created_at: string;
+  hasSecret: boolean;
+  createdAt: string;
 }
 
 export interface WebhookEvent {
@@ -28,7 +28,7 @@ export interface WebhookInput {
   secret?: string;
   events: string[];
   headers: Record<string, string>;
-  payload_template?: string;
+  payloadTemplate?: string;
   active: boolean;
 }
 
@@ -58,7 +58,7 @@ async function sendJSON<T>(method: string, path: string, body?: unknown): Promis
   return (await res.json()) as T;
 }
 
-const vq = (vesselId?: string) => (vesselId ? `?vessel_id=${encodeURIComponent(vesselId)}` : "");
+const vq = (vesselId?: string) => (vesselId ? `?vesselId=${encodeURIComponent(vesselId)}` : "");
 
 export function useWebhookEvents() {
   return useQuery<WebhookEvent[]>({

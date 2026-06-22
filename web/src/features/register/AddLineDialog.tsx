@@ -40,13 +40,13 @@ export function AddLineDialog({
     let failed = 0;
     for (const { file, kind } of attachments) {
       try {
-        const file_base64 = await fileToBase64(file);
+        const fileBase64 = await fileToBase64(file);
         if (kind === "photo") {
-          await postPhoto(lineId, { file_base64, content_type: file.type || undefined });
+          await postPhoto(lineId, { fileBase64, contentType: file.type || undefined });
         } else {
           await postDocument(lineId, {
-            file_base64, file_name: file.name,
-            content_type: file.type || undefined, kind: "delivery",
+            fileBase64, fileName: file.name,
+            contentType: file.type || undefined, kind: "delivery",
           });
         }
       } catch {
@@ -57,35 +57,35 @@ export function AddLineDialog({
   };
 
   const [form, setForm] = useState({
-    product_id: "",
+    productId: "",
     name: "",
-    serial_number: "",
-    tag_number: "",
-    certificate_number: "",
+    serialNumber: "",
+    tagNumber: "",
+    certificateNumber: "",
     length: "",
-    manufacture_date: "",
-    installation_date: "",
-    lifecycle_status: "active" as "active" | "ordered" | "spare",
+    manufactureDate: "",
+    installationDate: "",
+    lifecycleStatus: "active" as "active" | "ordered" | "spare",
   });
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm({ ...form, [k]: e.target.value });
 
-  const selected = products.find((p) => p.id === form.product_id);
+  const selected = products.find((p) => p.id === form.productId);
 
   const submit = async () => {
     setPlaceErr(null);
     setUploadErr(null);
     const line = await register.mutateAsync({
-      product_id: form.product_id,
+      productId: form.productId,
       name: form.name,
-      serial_number: form.serial_number,
-      tag_number: form.tag_number || undefined,
-      certificate_number: form.certificate_number || undefined,
+      serialNumber: form.serialNumber,
+      tagNumber: form.tagNumber || undefined,
+      certificateNumber: form.certificateNumber || undefined,
       length: form.length ? Number(form.length) : undefined,
-      manufacture_date: form.manufacture_date || undefined,
-      installation_date: form.installation_date || undefined,
+      manufactureDate: form.manufactureDate || undefined,
+      installationDate: form.installationDate || undefined,
       // when landing on a drum, create as spare; the move flips it to active.
-      lifecycle_status: placing ? "spare" : form.lifecycle_status,
+      lifecycleStatus: placing ? "spare" : form.lifecycleStatus,
     } as never);
     if (placing && targetDrumId) {
       try {
@@ -110,7 +110,7 @@ export function AddLineDialog({
     onClose();
   };
 
-  const valid = form.product_id && form.name && form.serial_number;
+  const valid = form.productId && form.name && form.serialNumber;
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -124,32 +124,32 @@ export function AddLineDialog({
 
         <div className="field">
           <label>Product</label>
-          <select className="input" value={form.product_id} onChange={set("product_id")}>
+          <select className="input" value={form.productId} onChange={set("productId")}>
             <option value="">Select product…</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.product_name} — {p.maker_name} ({p.line_type_name})
+                {p.productName} — {p.makerName} ({p.lineTypeName})
               </option>
             ))}
           </select>
           {selected && (
             <span className="muted" style={{ fontSize: 12 }}>
-              Maker {selected.maker_name} · type {selected.line_type_name}
-              {selected.construction_type ? ` · ${selected.construction_type}` : ""}
+              Maker {selected.makerName} · type {selected.lineTypeName}
+              {selected.constructionType ? ` · ${selected.constructionType}` : ""}
             </span>
           )}
         </div>
 
         <div className="row2">
           <div className="field"><label>Name / identification</label><input className="input" value={form.name} onChange={set("name")} /></div>
-          <div className="field"><label>Serial number</label><input className="input" value={form.serial_number} onChange={set("serial_number")} /></div>
+          <div className="field"><label>Serial number</label><input className="input" value={form.serialNumber} onChange={set("serialNumber")} /></div>
         </div>
         <div className="row2">
-          <div className="field"><label>Tag number</label><input className="input" value={form.tag_number} onChange={set("tag_number")} /></div>
-          <div className="field"><label>Certificate number</label><input className="input" value={form.certificate_number} onChange={set("certificate_number")} /></div>
+          <div className="field"><label>Tag number</label><input className="input" value={form.tagNumber} onChange={set("tagNumber")} /></div>
+          <div className="field"><label>Certificate number</label><input className="input" value={form.certificateNumber} onChange={set("certificateNumber")} /></div>
         </div>
         <div className="row2">
-          <div className="field"><label>Length (m)</label><input className="input" type="number" value={form.length} onChange={set("length")} placeholder={selected?.default_length?.toString() ?? ""} /></div>
+          <div className="field"><label>Length (m)</label><input className="input" type="number" value={form.length} onChange={set("length")} placeholder={selected?.defaultLength?.toString() ?? ""} /></div>
           {placing ? (
             <div className="field">
               <label>Lifecycle</label>
@@ -158,7 +158,7 @@ export function AddLineDialog({
           ) : (
             <div className="field">
               <label>Lifecycle</label>
-              <select className="input" value={form.lifecycle_status} onChange={set("lifecycle_status")}>
+              <select className="input" value={form.lifecycleStatus} onChange={set("lifecycleStatus")}>
                 <option value="active">Active</option>
                 <option value="ordered">Ordered (not yet aboard)</option>
                 <option value="spare">Spare</option>
@@ -167,8 +167,8 @@ export function AddLineDialog({
           )}
         </div>
         <div className="row2">
-          <div className="field"><label>Manufacture date</label><input className="input" type="date" value={form.manufacture_date} onChange={set("manufacture_date")} /></div>
-          <div className="field"><label>Installation date</label><input className="input" type="date" value={form.installation_date} onChange={set("installation_date")} /></div>
+          <div className="field"><label>Manufacture date</label><input className="input" type="date" value={form.manufactureDate} onChange={set("manufactureDate")} /></div>
+          <div className="field"><label>Installation date</label><input className="input" type="date" value={form.installationDate} onChange={set("installationDate")} /></div>
         </div>
 
         <div className="field">

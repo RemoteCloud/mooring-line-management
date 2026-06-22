@@ -20,7 +20,7 @@ type webhookEventInfo struct {
 }
 
 // commonVars are available for every event in addition to the per-event payload vars.
-var commonVars = []string{"event.type", "event.time", "event.id", "event.aggregate", "event.aggregate_id", "vessel.id"}
+var commonVars = []string{"event.type", "event.time", "event.id", "event.aggregate", "event.aggregateId", "vessel.id"}
 
 func withCommon(extra ...string) []string {
 	return append(append([]string{}, commonVars...), extra...)
@@ -28,12 +28,12 @@ func withCommon(extra ...string) []string {
 
 var webhookEventCatalog = []webhookEventInfo{
 	{"line.registered", "A mooring line was registered", withCommon("payload.id", "payload.serial")},
-	{"line.moved", "A line was moved to a drum or storage", withCommon("payload.id", "payload.drum_id", "payload.storage_id")},
+	{"line.moved", "A line was moved to a drum or storage", withCommon("payload.id", "payload.drumId", "payload.storageId")},
 	{"line.turned", "A line was turned end-for-end", withCommon("payload.id", "payload.side")},
-	{"inspection.logged", "An inspection was logged (manual or ingested)", withCommon("payload.id", "payload.line_id", "payload.condition_status")},
-	{"photo.added", "A condition photo was attached to a line", withCommon("payload.id", "payload.line_id", "payload.file_ref")},
-	{"document.added", "A document was uploaded for a line", withCommon("payload.id", "payload.line_id", "payload.kind", "payload.file_ref")},
-	{"layout.updated", "The deck layout was saved", withCommon("payload.vessel_id")},
+	{"inspection.logged", "An inspection was logged (manual or ingested)", withCommon("payload.id", "payload.lineId", "payload.conditionStatus")},
+	{"photo.added", "A condition photo was attached to a line", withCommon("payload.id", "payload.lineId", "payload.fileRef")},
+	{"document.added", "A document was uploaded for a line", withCommon("payload.id", "payload.lineId", "payload.kind", "payload.fileRef")},
+	{"layout.updated", "The deck layout was saved", withCommon("payload.vesselId")},
 }
 
 // webhookBody is the create/update request shape. Active is a pointer so an omitted
@@ -44,7 +44,7 @@ type webhookBody struct {
 	Secret          string            `json:"secret,omitempty" doc:"HMAC-SHA256 signing key. Leave empty on update to keep the current secret."`
 	Events          []string          `json:"events,omitempty" doc:"Event types to deliver. Empty = all events."`
 	Headers         map[string]string `json:"headers,omitempty" doc:"Custom request headers. Values may use {{variable}} substitution."`
-	PayloadTemplate string            `json:"payload_template,omitempty" doc:"Body template with {{variable}} substitution. Empty = default JSON envelope."`
+	PayloadTemplate string            `json:"payloadTemplate,omitempty" doc:"Body template with {{variable}} substitution. Empty = default JSON envelope."`
 	Active          *bool             `json:"active,omitempty"`
 }
 
@@ -78,7 +78,7 @@ func registerWebhooks(api huma.API, s *Server) {
 		OperationID: "list-webhooks", Method: http.MethodGet, Path: "/webhooks",
 		Summary: "List webhook subscriptions", Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `query:"vessel_id"`
+		VesselID string `query:"vesselId"`
 	}) (*struct{ Body []store.WebhookSubscription }, error) {
 		w, err := s.Store.ListWebhookSubscriptions(ctx, s.vessel(in.VesselID))
 		if err != nil {
@@ -94,7 +94,7 @@ func registerWebhooks(api huma.API, s *Server) {
 		OperationID: "create-webhook", Method: http.MethodPost, Path: "/webhooks",
 		Summary: "Create webhook subscription", Tags: tag, DefaultStatus: http.StatusCreated,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `query:"vessel_id"`
+		VesselID string `query:"vesselId"`
 		Body     webhookBody
 	}) (*struct{ Body store.WebhookSubscription }, error) {
 		sub := in.Body.toStore()

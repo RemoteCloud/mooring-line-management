@@ -263,39 +263,43 @@ function ProductsSection() {
                 <th>Type</th>
                 <th>Construction</th>
                 <th>Default length</th>
+                <th>SWL</th>
+                <th>Break load</th>
                 <th>Turnable</th>
               </tr>
             </thead>
             <tbody>
               {products?.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.product_name}</td>
-                  <td className="muted">{p.maker_name}</td>
-                  <td>{p.line_type_name}</td>
-                  <td>{p.construction_type || "—"}</td>
+                  <td>{p.productName}</td>
+                  <td className="muted">{p.makerName}</td>
+                  <td>{p.lineTypeName}</td>
+                  <td>{p.constructionType || "—"}</td>
                   <td>
-                    {p.default_length != null ? `${p.default_length} m` : "—"}
+                    {p.defaultLength != null ? `${p.defaultLength} m` : "—"}
                   </td>
-                  <td>{p.can_be_turned ? "Yes" : "No"}</td>
+                  <td>{p.swl != null ? `${p.swl} t` : "—"}</td>
+                  <td>{p.breakLoad != null ? `${p.breakLoad} t` : "—"}</td>
+                  <td>{p.canBeTurned ? "Yes" : "No"}</td>
                 </tr>
               ))}
               {isLoading && (
                 <tr>
-                  <td colSpan={6} className="muted catalogue-empty">
+                  <td colSpan={8} className="muted catalogue-empty">
                     Loading…
                   </td>
                 </tr>
               )}
               {isError && (
                 <tr>
-                  <td colSpan={6} className="err catalogue-empty">
+                  <td colSpan={8} className="err catalogue-empty">
                     Could not load products.
                   </td>
                 </tr>
               )}
               {!isLoading && !isError && products?.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="muted catalogue-empty">
+                  <td colSpan={8} className="muted catalogue-empty">
                     No products yet.
                   </td>
                 </tr>
@@ -318,13 +322,15 @@ function AddProductDialog({ onClose }: { onClose: () => void }) {
   const createProduct = useCreateProduct();
 
   const [form, setForm] = useState({
-    maker_id: "",
-    line_type_id: "",
-    product_name: "",
-    construction_type: "",
-    default_length: "",
-    can_be_turned: false,
-    manufacturer_manual_ref: "",
+    makerId: "",
+    lineTypeId: "",
+    productName: "",
+    constructionType: "",
+    defaultLength: "",
+    swl: "",
+    breakLoad: "",
+    canBeTurned: false,
+    manufacturerManualRef: "",
     notes: "",
   });
 
@@ -343,23 +349,25 @@ function AddProductDialog({ onClose }: { onClose: () => void }) {
     };
 
   const valid =
-    form.maker_id !== "" &&
-    form.line_type_id !== "" &&
-    form.product_name.trim() !== "";
+    form.makerId !== "" &&
+    form.lineTypeId !== "" &&
+    form.productName.trim() !== "";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid) return;
     const body: CreateProductBody = {
-      maker_id: form.maker_id,
-      line_type_id: form.line_type_id,
-      product_name: form.product_name.trim(),
-      construction_type: form.construction_type.trim() || undefined,
-      default_length: form.default_length
-        ? Number(form.default_length)
+      makerId: form.makerId,
+      lineTypeId: form.lineTypeId,
+      productName: form.productName.trim(),
+      constructionType: form.constructionType.trim() || undefined,
+      defaultLength: form.defaultLength
+        ? Number(form.defaultLength)
         : undefined,
-      can_be_turned: form.can_be_turned,
-      manufacturer_manual_ref: form.manufacturer_manual_ref.trim() || undefined,
+      swl: form.swl ? Number(form.swl) : undefined,
+      breakLoad: form.breakLoad ? Number(form.breakLoad) : undefined,
+      canBeTurned: form.canBeTurned,
+      manufacturerManualRef: form.manufacturerManualRef.trim() || undefined,
       notes: form.notes.trim() || undefined,
     };
     await createProduct.mutateAsync(body);
@@ -377,8 +385,8 @@ function AddProductDialog({ onClose }: { onClose: () => void }) {
             <select
               id="prod-maker"
               className="input"
-              value={form.maker_id}
-              onChange={setField("maker_id")}
+              value={form.makerId}
+              onChange={setField("makerId")}
             >
               <option value="">Select maker…</option>
               {makers.map((m) => (
@@ -393,8 +401,8 @@ function AddProductDialog({ onClose }: { onClose: () => void }) {
             <select
               id="prod-type"
               className="input"
-              value={form.line_type_id}
-              onChange={setField("line_type_id")}
+              value={form.lineTypeId}
+              onChange={setField("lineTypeId")}
             >
               <option value="">Select type…</option>
               {lineTypes.map((t) => (
@@ -411,8 +419,8 @@ function AddProductDialog({ onClose }: { onClose: () => void }) {
           <input
             id="prod-name"
             className="input"
-            value={form.product_name}
-            onChange={setField("product_name")}
+            value={form.productName}
+            onChange={setField("productName")}
           />
         </div>
 
@@ -422,8 +430,8 @@ function AddProductDialog({ onClose }: { onClose: () => void }) {
             <input
               id="prod-construction"
               className="input"
-              value={form.construction_type}
-              onChange={setField("construction_type")}
+              value={form.constructionType}
+              onChange={setField("constructionType")}
               placeholder="optional"
             />
           </div>
@@ -433,8 +441,37 @@ function AddProductDialog({ onClose }: { onClose: () => void }) {
               id="prod-length"
               className="input"
               type="number"
-              value={form.default_length}
-              onChange={setField("default_length")}
+              value={form.defaultLength}
+              onChange={setField("defaultLength")}
+              placeholder="optional"
+            />
+          </div>
+        </div>
+
+        <div className="row2">
+          <div className="field">
+            <label htmlFor="prod-swl">SWL (t)</label>
+            <input
+              id="prod-swl"
+              className="input"
+              type="number"
+              min="0"
+              step="0.1"
+              value={form.swl}
+              onChange={setField("swl")}
+              placeholder="optional"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="prod-mbl">Break load (t)</label>
+            <input
+              id="prod-mbl"
+              className="input"
+              type="number"
+              min="0"
+              step="0.1"
+              value={form.breakLoad}
+              onChange={setField("breakLoad")}
               placeholder="optional"
             />
           </div>
@@ -445,8 +482,8 @@ function AddProductDialog({ onClose }: { onClose: () => void }) {
           <input
             id="prod-manual"
             className="input"
-            value={form.manufacturer_manual_ref}
-            onChange={setField("manufacturer_manual_ref")}
+            value={form.manufacturerManualRef}
+            onChange={setField("manufacturerManualRef")}
             placeholder="optional"
           />
         </div>
@@ -466,8 +503,8 @@ function AddProductDialog({ onClose }: { onClose: () => void }) {
         <label className="catalogue-check">
           <input
             type="checkbox"
-            checked={form.can_be_turned}
-            onChange={setField("can_be_turned")}
+            checked={form.canBeTurned}
+            onChange={setField("canBeTurned")}
           />
           Can be turned (end-for-end)
         </label>

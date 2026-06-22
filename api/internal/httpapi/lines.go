@@ -14,11 +14,11 @@ func registerLines(api huma.API, s *Server) {
 	tag := []string{"lines"}
 
 	huma.Register(api, huma.Operation{
-		OperationID: "list-lines", Method: http.MethodGet, Path: "/vessels/{vessel_id}/lines",
+		OperationID: "list-lines", Method: http.MethodGet, Path: "/vessels/{vesselId}/lines",
 		Summary: "List mooring lines (filterable, searchable, paginated)", Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID   string `path:"vessel_id" format:"uuid"`
-		LineTypeID string `query:"line_type_id"`
+		VesselID   string `path:"vesselId" format:"uuid"`
+		LineTypeID string `query:"lineTypeId"`
 		Condition  string `query:"condition" enum:"Good,Monitor,Action"`
 		Placement  string `query:"placement" enum:"installed,spare"`
 		Q          string `query:"q"`
@@ -49,11 +49,11 @@ func registerLines(api huma.API, s *Server) {
 	})
 
 	huma.Register(api, huma.Operation{
-		OperationID: "register-line", Method: http.MethodPost, Path: "/vessels/{vessel_id}/lines",
+		OperationID: "register-line", Method: http.MethodPost, Path: "/vessels/{vesselId}/lines",
 		Summary: "Register a mooring line (supports lifecycle_status=ordered)", Tags: tag,
 		DefaultStatus: http.StatusCreated,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `path:"vessel_id" format:"uuid"`
+		VesselID string `path:"vesselId" format:"uuid"`
 		Body     lineBody
 	}) (*struct{ Body store.Line }, error) {
 		l, err := s.Store.CreateLine(ctx, s.vessel(in.VesselID), in.Body.toInput())
@@ -82,8 +82,8 @@ func registerLines(api huma.API, s *Server) {
 	}, func(ctx context.Context, in *struct {
 		ID   string `path:"id" format:"uuid"`
 		Body struct {
-			ToDrumID    string `json:"to_drum_id,omitempty"`
-			ToStorageID string `json:"to_storage_id,omitempty"`
+			ToDrumID    string `json:"toDrumId,omitempty"`
+			ToStorageID string `json:"toStorageId,omitempty"`
 		}
 	}) (*struct{ Body store.Line }, error) {
 		l, err := s.Store.MoveLine(ctx, in.ID, in.Body.ToDrumID, in.Body.ToStorageID)
@@ -114,16 +114,16 @@ func registerLines(api huma.API, s *Server) {
 }
 
 type lineBody struct {
-	ProductID         string   `json:"product_id" format:"uuid"`
+	ProductID         string   `json:"productId" format:"uuid"`
 	Name              string   `json:"name" minLength:"1"`
-	SerialNumber      string   `json:"serial_number" minLength:"1"`
-	TagNumber         string   `json:"tag_number,omitempty"`
-	CertificateNumber string   `json:"certificate_number,omitempty"`
-	LifecycleStatus   string   `json:"lifecycle_status,omitempty" enum:"ordered,active,spare,retired"`
+	SerialNumber      string   `json:"serialNumber" minLength:"1"`
+	TagNumber         string   `json:"tagNumber,omitempty"`
+	CertificateNumber string   `json:"certificateNumber,omitempty"`
+	LifecycleStatus   string   `json:"lifecycleStatus,omitempty" enum:"ordered,active,spare,retired"`
 	Length            *float64 `json:"length,omitempty"`
-	ManufactureDate   string   `json:"manufacture_date,omitempty" format:"date"`
-	InstallationDate  string   `json:"installation_date,omitempty" format:"date"`
-	CurrentSide       string   `json:"current_side,omitempty" enum:"A,B,n/a"`
+	ManufactureDate   string   `json:"manufactureDate,omitempty" format:"date"`
+	InstallationDate  string   `json:"installationDate,omitempty" format:"date"`
+	CurrentSide       string   `json:"currentSide,omitempty" enum:"A,B,n/a"`
 }
 
 func (b lineBody) toInput() store.NewLineInput {

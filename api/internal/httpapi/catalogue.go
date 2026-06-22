@@ -70,8 +70,8 @@ func registerCatalogue(api huma.API, s *Server) {
 		OperationID: "list-products", Method: http.MethodGet, Path: "/products",
 		Summary: "List products", Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		MakerID    string `query:"maker_id"`
-		LineTypeID string `query:"line_type_id"`
+		MakerID    string `query:"makerId"`
+		LineTypeID string `query:"lineTypeId"`
 	}) (*struct{ Body []store.Product }, error) {
 		p, err := s.Store.ListProducts(ctx, in.MakerID, in.LineTypeID)
 		if err != nil {
@@ -98,20 +98,23 @@ func registerCatalogue(api huma.API, s *Server) {
 		Summary: "Create product", Tags: tag, DefaultStatus: http.StatusCreated,
 	}, func(ctx context.Context, in *struct {
 		Body struct {
-			MakerID          string   `json:"maker_id" format:"uuid"`
-			LineTypeID       string   `json:"line_type_id" format:"uuid"`
-			ProductName      string   `json:"product_name" minLength:"1"`
-			ConstructionType string   `json:"construction_type,omitempty"`
-			DefaultLength    *float64 `json:"default_length,omitempty"`
-			CanBeTurned      bool     `json:"can_be_turned"`
-			ManualRef        string   `json:"manufacturer_manual_ref,omitempty"`
+			MakerID          string   `json:"makerId" format:"uuid"`
+			LineTypeID       string   `json:"lineTypeId" format:"uuid"`
+			ProductName      string   `json:"productName" minLength:"1"`
+			ConstructionType string   `json:"constructionType,omitempty"`
+			DefaultLength    *float64 `json:"defaultLength,omitempty"`
+			SWL              *float64 `json:"swl,omitempty"`
+			BreakLoad        *float64 `json:"breakLoad,omitempty"`
+			CanBeTurned      bool     `json:"canBeTurned"`
+			ManualRef        string   `json:"manufacturerManualRef,omitempty"`
 			Notes            string   `json:"notes,omitempty"`
 		}
 	}) (*struct{ Body store.Product }, error) {
 		p, err := s.Store.CreateProduct(ctx, store.NewProductInput{
 			MakerID: in.Body.MakerID, LineTypeID: in.Body.LineTypeID,
 			ProductName: in.Body.ProductName, ConstructionType: in.Body.ConstructionType,
-			DefaultLength: in.Body.DefaultLength, CanBeTurned: in.Body.CanBeTurned,
+			DefaultLength: in.Body.DefaultLength, SWL: in.Body.SWL, BreakLoad: in.Body.BreakLoad,
+			CanBeTurned: in.Body.CanBeTurned,
 			ManualRef: in.Body.ManualRef, Notes: in.Body.Notes,
 		})
 		if err != nil {

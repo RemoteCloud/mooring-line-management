@@ -12,18 +12,18 @@ import (
 )
 
 type inspLogBody struct {
-	ConditionStatus string `json:"condition_status" enum:"Good,Monitor,Action"`
-	InspectedBy     string `json:"inspected_by,omitempty"`
-	InspectedAt     string `json:"inspected_at,omitempty" format:"date-time"`
+	ConditionStatus string `json:"conditionStatus" enum:"Good,Monitor,Action"`
+	InspectedBy     string `json:"inspectedBy,omitempty"`
+	InspectedAt     string `json:"inspectedAt,omitempty" format:"date-time"`
 	Notes           string `json:"notes,omitempty"`
 }
 
 type inspIngestBody struct {
-	SerialNumber    string `json:"serial_number" minLength:"1"`
-	ExternalID      string `json:"external_id,omitempty"`
-	ConditionStatus string `json:"condition_status" enum:"Good,Monitor,Action"`
-	InspectedBy     string `json:"inspected_by,omitempty"`
-	InspectedAt     string `json:"inspected_at,omitempty" format:"date-time"`
+	SerialNumber    string `json:"serialNumber" minLength:"1"`
+	ExternalID      string `json:"externalId,omitempty"`
+	ConditionStatus string `json:"conditionStatus" enum:"Good,Monitor,Action"`
+	InspectedBy     string `json:"inspectedBy,omitempty"`
+	InspectedAt     string `json:"inspectedAt,omitempty" format:"date-time"`
 	Notes           string `json:"notes,omitempty"`
 }
 
@@ -116,7 +116,7 @@ func registerInspections(api huma.API, s *Server) {
 		OperationID: "insp-logbook", Method: http.MethodGet, Path: "/inspections/logbook",
 		Summary: "Chronological inspection logbook for a vessel", Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `query:"vessel_id"`
+		VesselID string `query:"vesselId"`
 		Limit    int    `query:"limit"`
 	}) (*struct{ Body []store.InspLogbookEntry }, error) {
 		items, err := s.Store.Logbook(ctx, s.vessel(in.VesselID), in.Limit)
@@ -130,7 +130,7 @@ func registerInspections(api huma.API, s *Server) {
 		OperationID: "insp-report", Method: http.MethodGet, Path: "/reports/condition",
 		Summary: "Download a condition report (CSV or PDF)", Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `query:"vessel_id"`
+		VesselID string `query:"vesselId"`
 		Format   string `query:"format" enum:"pdf,csv"`
 	}) (*struct {
 		ContentType string `header:"Content-Type"`

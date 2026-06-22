@@ -37,7 +37,7 @@ const DRUM_GAP = 5;
 const PAD = 11;
 
 export function winchBox(w: Winch) {
-  const inner = w.drum_count * DRUM_W + (w.drum_count - 1) * DRUM_GAP;
+  const inner = w.drumCount * DRUM_W + (w.drumCount - 1) * DRUM_GAP;
   return { bw: inner + PAD * 2, bh: DRUM_H + PAD * 2, inner };
 }
 
@@ -71,8 +71,8 @@ export function WinchSymbol({
       style={{ cursor: onPointerDown ? "grab" : "pointer" }}
     >
       <rect className={"winch-body" + (selected ? " sel" : "")} x={-bw / 2} y={-bh / 2} width={bw} height={bh} rx={8} />
-      {Array.from({ length: w.drum_count }).map((_, i) => {
-        const filled = (byIdx.get(i + 1)?.line_count ?? 0) > 0;
+      {Array.from({ length: w.drumCount }).map((_, i) => {
+        const filled = (byIdx.get(i + 1)?.lineCount ?? 0) > 0;
         const hl = highlightDrumIdx === i + 1;
         const sel = selectedDrumIdx === i + 1;
         const cellX = -inner / 2 + i * (DRUM_W + DRUM_GAP);
@@ -104,7 +104,7 @@ export function WinchSymbol({
         );
       })}
       {/* worst-case status mark (shape carries status, not just color) */}
-      <StatusMark status={w.worst_status} cx={bw / 2 - 7} cy={-bh / 2 + 7} />
+      <StatusMark status={w.worstStatus} cx={bw / 2 - 7} cy={-bh / 2 + 7} />
       {/* drive-type marker, top-left: E electric / H hydraulic */}
       <text
         className="sym-drive"
@@ -112,7 +112,7 @@ export function WinchSymbol({
         y={-bh / 2 + 15}
         transform={`rotate(${-w.orientation} ${-bw / 2 + 9} ${-bh / 2 + 11})`}
       >
-        {w.drive_type === "hydraulic" ? "H" : "E"}
+        {w.driveType === "hydraulic" ? "H" : "E"}
       </text>
       <text className="sym-label" x={0} y={rotHalfH + 16} transform={`rotate(${-w.orientation})`}>{w.label}</text>
     </g>
@@ -137,8 +137,8 @@ export function StorageSymbol({
        style={{ cursor: onPointerDown ? "grab" : "pointer" }}>
       <rect className={"winch-body" + (selected ? " sel" : "") + (highlighted ? " hl" : "")} x={-w / 2} y={-h / 2} width={w} height={h} rx={6}
             strokeDasharray="5 4" />
-      <text className="sym-label" x={0} y={4}>▤ {s.line_count}</text>
-      <StatusMark status={s.worst_status} cx={w / 2 - 4} cy={-h / 2 + 4} />
+      <text className="sym-label" x={0} y={4}>▤ {s.lineCount}</text>
+      <StatusMark status={s.worstStatus} cx={w / 2 - 4} cy={-h / 2 + 4} />
       <text className="sym-label" x={0} y={h / 2 + 16}>{s.label}</text>
     </g>
   );

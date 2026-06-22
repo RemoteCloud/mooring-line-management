@@ -24,12 +24,12 @@ export function InspectionsTab({ lineId }: { lineId: string }) {
         <div className="insp-list">
           {inspections.map((i) => (
             <div className="insp-row" key={i.id}>
-              <span className="insp-date">{dateLabel(i.inspected_at)}</span>
+              <span className="insp-date">{dateLabel(i.inspectedAt)}</span>
               <span className="insp-cond">
-                <StatusDot condition={i.condition_status as never} /> {i.condition_status}
+                <StatusDot condition={i.conditionStatus as never} /> {i.conditionStatus}
               </span>
               <span className="insp-meta">
-                <span className="insp-by">{i.inspected_by || (i.source === "api" ? "Third-party API" : "—")}</span>
+                <span className="insp-by">{i.inspectedBy || (i.source === "api" ? "Third-party API" : "—")}</span>
                 {i.notes && <span className="insp-notes">{i.notes}</span>}
               </span>
             </div>

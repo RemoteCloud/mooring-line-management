@@ -1,7 +1,7 @@
 // View-mode rope-management panel for a selected winch (or storage). Lists the
 // winch's drums and lets the crew assign / register / move / turn / inspect the
 // ropes on them without leaving the deck map. Drum↔rope matching is by
-// current_drum_id (not label parsing).
+// currentDrumId (not label parsing).
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -22,9 +22,9 @@ type Dialog =
 // an active rope currently sitting in storage (being redeployed). Excludes
 // ordered / retired / active-but-nowhere.
 function isAssignable(l: LineRow): boolean {
-  if (l.current_drum_id) return false;
-  if (l.lifecycle_status === "spare") return true;
-  return l.lifecycle_status === "active" && !!l.current_storage_id;
+  if (l.currentDrumId) return false;
+  if (l.lifecycleStatus === "spare") return true;
+  return l.lifecycleStatus === "active" && !!l.currentStorageId;
 }
 
 export function WinchPanel({
@@ -40,13 +40,15 @@ export function WinchPanel({
 }) {
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const drums = [...(winch.drums ?? [])].sort((a, b) => a.idx - b.idx);
-  const lineOnDrum = (drumId: string) => lines.find((l) => l.current_drum_id === drumId);
+  const lineOnDrum = (drumId: string) => lines.find((l) => l.currentDrumId === drumId);
 
   return (
     <>
       <h3 style={{ marginTop: 0 }}>{winch.label}</h3>
       <p className="muted" style={{ marginTop: -6 }}>
-        {winch.drive_type === "hydraulic" ? "Hydraulic" : "Electric"} · {drums.length} drum{drums.length === 1 ? "" : "s"}
+        {winch.driveType === "hydraulic" ? "Hydraulic" : "Electric"} · {drums.length} drum{drums.length === 1 ? "" : "s"}
+        {winch.swl != null && ` · SWL ${winch.swl} t`}
+        {winch.breakLoad != null && ` · MBL ${winch.breakLoad} t`}
       </p>
 
       <div className="drum-rows">
@@ -61,9 +63,9 @@ export function WinchPanel({
                   <button className="drum-head drum-select" onClick={() => onSelectDrum(d.idx)} aria-pressed={sel}>
                     <span className="drum-tag">D{d.idx}</span>
                     <span className="drum-line">
-                      <StatusDot condition={line.current_condition_status as never} />
+                      <StatusDot condition={line.currentConditionStatus as never} />
                       <span className="drum-line-name">{line.name}</span>
-                      <span className="muted drum-line-side">Side {line.current_side || "—"}</span>
+                      <span className="muted drum-line-side">Side {line.currentSide || "—"}</span>
                     </span>
                   </button>
                   <div className="drum-actions">
@@ -116,7 +118,7 @@ export function StoragePanel({
 }) {
   const navigate = useNavigate();
   const [dialog, setDialog] = useState<Dialog | null>(null);
-  const here = lines.filter((l) => l.current_storage_id === storage.id);
+  const here = lines.filter((l) => l.currentStorageId === storage.id);
 
   return (
     <>
@@ -127,9 +129,9 @@ export function StoragePanel({
         {here.map((line) => (
           <div key={line.id} className="drum-row">
             <button className="drum-line" onClick={() => navigate(`/lines/${line.id}`)}>
-              <StatusDot condition={line.current_condition_status as never} />
+              <StatusDot condition={line.currentConditionStatus as never} />
               <span className="drum-line-name">{line.name}</span>
-              <span className="muted drum-line-side">{line.serial_number}</span>
+              <span className="muted drum-line-side">{line.serialNumber}</span>
             </button>
             <div className="drum-actions">
               <button className="chip" onClick={() => setDialog({ kind: "move", line })}>Move</button>
@@ -150,9 +152,9 @@ export function StoragePanel({
 
 function TurnChip({ line }: { line: LineRow }) {
   const turn = useTurnLine(line.id);
-  // LineRow doesn't carry can_be_turned; allow turning whenever the rope is on a
+  // LineRow doesn't carry canBeTurned; allow turning whenever the rope is on a
   // definite side and let the backend reject non-turnable lines.
-  const disabled = !line.current_side || line.current_side === "n/a" || turn.isPending;
+  const disabled = !line.currentSide || line.currentSide === "n/a" || turn.isPending;
   const onClick = () => {
     if (turn.isPending) return;
     if (!window.confirm(`Turn ${line.name} to its other side?`)) return;
@@ -177,15 +179,15 @@ function MovePicker({
   onClose: () => void;
 }) {
   const move = useMoveLine(vesselId);
-  const occupied = new Set(lines.map((l) => l.current_drum_id).filter(Boolean) as string[]);
+  const occupied = new Set(lines.map((l) => l.currentDrumId).filter(Boolean) as string[]);
 
   const drumTargets = (layout.winches ?? []).flatMap((w) =>
     [...(w.drums ?? [])].sort((a, b) => a.idx - b.idx)
-      .filter((d) => !occupied.has(d.id) && d.id !== line.current_drum_id)
+      .filter((d) => !occupied.has(d.id) && d.id !== line.currentDrumId)
       .map((d) => ({ id: d.id, kind: "drum" as const, label: `${w.label} · D${d.idx}`, station: w.station })),
   );
   const storageTargets = (layout.storage ?? [])
-    .filter((s) => s.id !== line.current_storage_id)
+    .filter((s) => s.id !== line.currentStorageId)
     .map((s) => ({ id: s.id, kind: "storage" as const, label: s.label, station: s.station }));
   const targets = [...drumTargets, ...storageTargets];
 
@@ -244,9 +246,9 @@ function AssignPicker({
           {candidates.map((l) => (
             <button key={l.id} className="pick-row" disabled={move.isPending} onClick={() => go(l.id)}>
               <span>
-                <StatusDot condition={l.current_condition_status as never} /> {l.name}
+                <StatusDot condition={l.currentConditionStatus as never} /> {l.name}
               </span>
-              <span className="muted">{l.lifecycle_status === "spare" ? "Spare" : "In storage"} · {l.serial_number}</span>
+              <span className="muted">{l.lifecycleStatus === "spare" ? "Spare" : "In storage"} · {l.serialNumber}</span>
             </button>
           ))}
         </div>

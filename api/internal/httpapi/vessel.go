@@ -40,10 +40,10 @@ func registerVessel(api huma.API, s *Server) {
 	})
 
 	huma.Register(api, huma.Operation{
-		OperationID: "get-vessel", Method: http.MethodGet, Path: "/vessels/{vessel_id}",
+		OperationID: "get-vessel", Method: http.MethodGet, Path: "/vessels/{vesselId}",
 		Summary: "Get vessel", Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `path:"vessel_id" format:"uuid"`
+		VesselID string `path:"vesselId" format:"uuid"`
 	}) (*struct{ Body store.Vessel }, error) {
 		v, err := s.Store.GetVessel(ctx, s.vessel(in.VesselID))
 		if err != nil {
@@ -53,10 +53,10 @@ func registerVessel(api huma.API, s *Server) {
 	})
 
 	huma.Register(api, huma.Operation{
-		OperationID: "get-layout", Method: http.MethodGet, Path: "/vessels/{vessel_id}/layout",
+		OperationID: "get-layout", Method: http.MethodGet, Path: "/vessels/{vesselId}/layout",
 		Summary: "Get deck layout (winches, drums, storage with worst-case status)", Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `path:"vessel_id" format:"uuid"`
+		VesselID string `path:"vesselId" format:"uuid"`
 	}) (*struct{ Body store.Layout }, error) {
 		l, err := s.Store.GetLayout(ctx, s.vessel(in.VesselID))
 		if err != nil {
@@ -66,10 +66,10 @@ func registerVessel(api huma.API, s *Server) {
 	})
 
 	huma.Register(api, huma.Operation{
-		OperationID: "save-layout", Method: http.MethodPut, Path: "/vessels/{vessel_id}/layout",
+		OperationID: "save-layout", Method: http.MethodPut, Path: "/vessels/{vesselId}/layout",
 		Summary: "Replace deck layout (staged edit save)", Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `path:"vessel_id" format:"uuid"`
+		VesselID string `path:"vesselId" format:"uuid"`
 		Body     struct {
 			Winches []winchBody   `json:"winches"`
 			Storage []storageBody `json:"storage"`
@@ -82,6 +82,7 @@ func registerVessel(api huma.API, s *Server) {
 				ID: w.ID, Label: w.Label, Station: w.Station, X: w.X, Y: w.Y,
 				Orientation: w.Orientation, DrumCount: w.DrumCount,
 				DriveType: w.DriveType, LabelAuto: w.LabelAuto,
+				SWL: w.SWL, BreakLoad: w.BreakLoad,
 			})
 		}
 		for _, st := range in.Body.Storage {
@@ -112,9 +113,11 @@ type winchBody struct {
 	X           float64 `json:"x"`
 	Y           float64 `json:"y"`
 	Orientation int     `json:"orientation" enum:"0,45,-45,90,-90"`
-	DrumCount   int     `json:"drum_count" minimum:"1" maximum:"6"`
-	DriveType   string  `json:"drive_type,omitempty" enum:"electric,hydraulic"`
-	LabelAuto   bool    `json:"label_auto,omitempty"`
+	DrumCount   int      `json:"drumCount" minimum:"1" maximum:"6"`
+	DriveType   string   `json:"driveType,omitempty" enum:"electric,hydraulic"`
+	LabelAuto   bool     `json:"labelAuto,omitempty"`
+	SWL         *float64 `json:"swl,omitempty"`
+	BreakLoad   *float64 `json:"breakLoad,omitempty"`
 }
 
 type storageBody struct {
@@ -125,7 +128,7 @@ type storageBody struct {
 	// Station is fwd/aft for on-map storage; empty for vessel-wide off-map areas.
 	Station string `json:"station,omitempty"`
 	// OnMap defaults true (drawn on the deck plan); false = a text-only storage area.
-	OnMap *bool   `json:"on_map,omitempty"`
+	OnMap *bool   `json:"onMap,omitempty"`
 	X     float64 `json:"x"`
 	Y     float64 `json:"y"`
 }

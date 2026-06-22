@@ -166,7 +166,7 @@ SELECT ml.id, ml.name, ml.serial_number, COALESCE(ml.tag_number,''),
             ELSE '—' END,
        (ml.current_drum_id IS NOT NULL),
        ml.installation_date, ml.manufacture_date,
-       ml.vessel_id, ml.product_id, COALESCE(p.construction_type,''), ml.length,
+       ml.vessel_id, ml.product_id, COALESCE(p.construction_type,''), p.swl, p.break_load, ml.length,
        ml.can_be_turned, COALESCE(ml.certificate_ref,''),
        ml.side_a_change_date, ml.side_a_accumulated_age_days, COALESCE(ml.side_a_condition,''),
        ml.side_b_change_date, ml.side_b_accumulated_age_days, COALESCE(ml.side_b_condition,''),
@@ -182,7 +182,7 @@ WHERE ml.id=$1`, id).Scan(
 		&l.ID, &l.Name, &l.SerialNumber, &l.TagNumber, &l.CertificateNumber, &l.LifecycleStatus,
 		&l.ProductName, &l.MakerName, &l.LineTypeName,
 		&l.CurrentConditionStatus, &l.CurrentSide, &l.LocationLabel, &l.Installed,
-		&inst, &mfg, &l.VesselID, &l.ProductID, &l.ConstructionType, &l.Length,
+		&inst, &mfg, &l.VesselID, &l.ProductID, &l.ConstructionType, &l.SWL, &l.BreakLoad, &l.Length,
 		&l.CanBeTurned, &l.CertificateRef,
 		&saCD, &saAcc, &l.SideACondition,
 		&sbCD, &sbAcc, &l.SideBCondition,
@@ -294,7 +294,7 @@ WHERE id = $1`, id, nullUUID(toDrumID), nullUUID(toStorageID))
 		return Line{}, mapPgError(err)
 	}
 	if err := writeOutbox(ctx, tx, vesselID, "mooring_line", id, "line.moved",
-		map[string]any{"id": id, "drum_id": toDrumID, "storage_id": toStorageID}); err != nil {
+		map[string]any{"id": id, "drumId": toDrumID, "storageId": toStorageID}); err != nil {
 		return Line{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {

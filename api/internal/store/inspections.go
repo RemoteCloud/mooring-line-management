@@ -11,23 +11,23 @@ import (
 // Inspection is one logged or ingested condition assessment of a mooring line.
 type Inspection struct {
 	ID              string    `json:"id"`
-	LineID          string    `json:"line_id"`
-	VesselID        string    `json:"vessel_id"`
-	InspectedAt     time.Time `json:"inspected_at"`
-	InspectedBy     string    `json:"inspected_by,omitempty"`
+	LineID          string    `json:"lineId"`
+	VesselID        string    `json:"vesselId"`
+	InspectedAt     time.Time `json:"inspectedAt"`
+	InspectedBy     string    `json:"inspectedBy,omitempty"`
 	Source          string    `json:"source"`
-	ExternalID      string    `json:"external_id,omitempty"`
-	ConditionStatus string    `json:"condition_status"`
+	ExternalID      string    `json:"externalId,omitempty"`
+	ConditionStatus string    `json:"conditionStatus"`
 	Notes           string    `json:"notes,omitempty"`
-	CreatedAt       time.Time `json:"created_at"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 // InspLogbookEntry is an inspection enriched with its line's name and serial,
 // for the chronological logbook view across a vessel.
 type InspLogbookEntry struct {
 	Inspection
-	LineName     string `json:"line_name"`
-	SerialNumber string `json:"serial_number"`
+	LineName     string `json:"lineName"`
+	SerialNumber string `json:"serialNumber"`
 }
 
 // InspInput carries the manual-logging fields. InspectedAt is optional (defaults to now).
@@ -87,7 +87,7 @@ VALUES ($1,$2,$3,COALESCE($4, now()),$5,'manual',$6,$7)`,
 	}
 
 	if err := writeOutbox(ctx, tx, vesselID, "inspection", id, "inspection.logged",
-		map[string]any{"id": id, "line_id": lineID, "condition_status": in.ConditionStatus}); err != nil {
+		map[string]any{"id": id, "lineId": lineID, "conditionStatus": in.ConditionStatus}); err != nil {
 		return Inspection{}, err
 	}
 
@@ -146,7 +146,7 @@ RETURNING id`,
 			return Inspection{}, false, err
 		}
 		if err := writeOutbox(ctx, tx, vesselID, "inspection", newRowID, "inspection.logged",
-			map[string]any{"id": newRowID, "line_id": lineID, "condition_status": conditionStatus, "source": "api"}); err != nil {
+			map[string]any{"id": newRowID, "lineId": lineID, "conditionStatus": conditionStatus, "source": "api"}); err != nil {
 			return Inspection{}, false, err
 		}
 	}

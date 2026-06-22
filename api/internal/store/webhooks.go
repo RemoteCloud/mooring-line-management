@@ -12,16 +12,16 @@ import (
 // serialized back to clients (write-only); HasSecret reports whether one is set.
 type WebhookSubscription struct {
 	ID              string            `json:"id"`
-	VesselID        string            `json:"vessel_id,omitempty"`
+	VesselID        string            `json:"vesselId,omitempty"`
 	Name            string            `json:"name"`
 	URL             string            `json:"url"`
 	Secret          string            `json:"-"`
 	Events          []string          `json:"events"`
 	Headers         map[string]string `json:"headers"`
-	PayloadTemplate string            `json:"payload_template,omitempty"`
+	PayloadTemplate string            `json:"payloadTemplate,omitempty"`
 	Active          bool              `json:"active"`
-	HasSecret       bool              `json:"has_secret"`
-	CreatedAt       time.Time         `json:"created_at"`
+	HasSecret       bool              `json:"hasSecret"`
+	CreatedAt       time.Time         `json:"createdAt"`
 }
 
 const webhookCols = `id, COALESCE(vessel_id::text,''), name, url, secret, events, headers, payload_template, active, created_at`

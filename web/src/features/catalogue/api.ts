@@ -18,15 +18,17 @@ export interface LineType {
 
 export interface Product {
   id: string;
-  maker_id: string;
-  maker_name: string;
-  line_type_id: string;
-  line_type_name: string;
-  product_name: string;
-  construction_type?: string;
-  default_length?: number;
-  can_be_turned: boolean;
-  manufacturer_manual_ref?: string;
+  makerId: string;
+  makerName: string;
+  lineTypeId: string;
+  lineTypeName: string;
+  productName: string;
+  constructionType?: string;
+  defaultLength?: number;
+  swl?: number;
+  breakLoad?: number;
+  canBeTurned: boolean;
+  manufacturerManualRef?: string;
   notes?: string;
 }
 
@@ -41,13 +43,15 @@ export interface CreateLineTypeBody {
 }
 
 export interface CreateProductBody {
-  maker_id: string;
-  line_type_id: string;
-  product_name: string;
-  construction_type?: string;
-  default_length?: number;
-  can_be_turned: boolean;
-  manufacturer_manual_ref?: string;
+  makerId: string;
+  lineTypeId: string;
+  productName: string;
+  constructionType?: string;
+  defaultLength?: number;
+  swl?: number;
+  breakLoad?: number;
+  canBeTurned: boolean;
+  manufacturerManualRef?: string;
   notes?: string;
 }
 

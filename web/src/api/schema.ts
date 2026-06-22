@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api-keys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an API key */
+        delete: operations["revoke-api-key"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -229,6 +246,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current authenticated user */
+        get: operations["whoami"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/photos/{id}": {
         parameters: {
             query?: never;
@@ -298,6 +332,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List users */
+        get: operations["list-users"];
+        put?: never;
+        /** Create user */
+        post: operations["create-user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update user (active/role) */
+        patch: operations["update-user"];
+        trace?: never;
+    };
+    "/users/{id}/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a user's API keys (metadata only) */
+        get: operations["list-api-keys"];
+        put?: never;
+        /** Issue an API key (plaintext returned once) */
+        post: operations["create-api-key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vessels": {
         parameters: {
             query?: never;
@@ -316,7 +403,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/vessels/{vessel_id}": {
+    "/vessels/{vesselId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -333,7 +420,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/vessels/{vessel_id}/layout": {
+    "/vessels/{vesselId}/layout": {
         parameters: {
             query?: never;
             header?: never;
@@ -351,7 +438,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/vessels/{vessel_id}/lines": {
+    "/vessels/{vesselId}/lines": {
         parameters: {
             query?: never;
             header?: never;
@@ -369,7 +456,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/vessels/{vessel_id}/overview": {
+    "/vessels/{vesselId}/overview": {
         parameters: {
             query?: never;
             header?: never;
@@ -461,6 +548,40 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        APIKey: {
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            keyPrefix: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            name: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            userId: string;
+        };
+        AuthUser: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/AuthUser.json
+             */
+            readonly $schema?: string;
+            email: string;
+            id: string;
+            name: string;
+            role: string;
+            vesselId?: string;
+        };
+        "Create-api-keyRequest": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/Create-api-keyRequest.json
+             */
+            readonly $schema?: string;
+            name: string;
+        };
         "Create-line-typeRequest": {
             /**
              * Format: uri
@@ -488,17 +609,36 @@ export interface components {
              * @example https://example.com/schemas/Create-productRequest.json
              */
             readonly $schema?: string;
-            can_be_turned: boolean;
-            construction_type?: string;
             /** Format: double */
-            default_length?: number;
+            breakLoad?: number;
+            canBeTurned: boolean;
+            constructionType?: string;
+            /** Format: double */
+            defaultLength?: number;
             /** Format: uuid */
-            line_type_id: string;
+            lineTypeId: string;
             /** Format: uuid */
-            maker_id: string;
-            manufacturer_manual_ref?: string;
+            makerId: string;
+            manufacturerManualRef?: string;
             notes?: string;
-            product_name: string;
+            productName: string;
+            /** Format: double */
+            swl?: number;
+        };
+        "Create-userRequest": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/Create-userRequest.json
+             */
+            readonly $schema?: string;
+            /** Format: email */
+            email: string;
+            name: string;
+            /** @enum {string} */
+            role: "admin" | "vessel_user" | "readonly";
+            /** Format: uuid */
+            vesselId?: string;
         };
         "Create-vesselRequest": {
             /**
@@ -515,7 +655,7 @@ export interface components {
             /** Format: int64 */
             idx: number;
             /** Format: int64 */
-            line_count: number;
+            lineCount: number;
         };
         ErrorDetail: {
             /** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
@@ -571,9 +711,9 @@ export interface components {
              * @example https://example.com/schemas/File-add-certRequest.json
              */
             readonly $schema?: string;
-            content_type?: string;
-            file_base64: string;
-            file_name: string;
+            contentType?: string;
+            fileBase64: string;
+            fileName: string;
             /** @enum {string} */
             kind?: "certificate" | "manual" | "guide" | "delivery";
         };
@@ -585,14 +725,14 @@ export interface components {
              */
             readonly $schema?: string;
             /** @enum {string} */
-            condition_at_capture?: "Good" | "Monitor" | "Action";
-            content_type?: string;
-            file_base64: string;
-            inspection_id?: string;
+            conditionAtCapture?: "Good" | "Monitor" | "Action";
+            contentType?: string;
+            fileBase64: string;
+            inspectionId?: string;
             /** @enum {string} */
             side?: "A" | "B" | "n/a";
             /** Format: date */
-            taken_at?: string;
+            takenAt?: string;
         };
         FileDoc: {
             /**
@@ -601,19 +741,19 @@ export interface components {
              * @example https://example.com/schemas/FileDoc.json
              */
             readonly $schema?: string;
-            content_type?: string;
+            contentType?: string;
             /** Format: date-time */
-            created_at: string;
-            file_name: string;
-            file_ref: string;
+            createdAt: string;
+            fileName: string;
+            fileRef: string;
             id: string;
             kind: string;
-            line_id?: string;
-            product_id?: string;
+            lineId?: string;
+            productId?: string;
             /** Format: int64 */
-            size_bytes: number;
+            sizeBytes: number;
             url?: string;
-            vessel_id?: string;
+            vesselId?: string;
         };
         FilePhoto: {
             /**
@@ -622,16 +762,16 @@ export interface components {
              * @example https://example.com/schemas/FilePhoto.json
              */
             readonly $schema?: string;
-            condition_at_capture?: string;
+            conditionAtCapture?: string;
             /** Format: date-time */
-            created_at: string;
-            file_ref: string;
+            createdAt: string;
+            fileRef: string;
             id: string;
-            inspection_id?: string;
-            line_id: string;
+            inspectionId?: string;
+            lineId: string;
             side?: string;
             /** Format: date-time */
-            taken_at?: string;
+            takenAt?: string;
             url?: string;
         };
         HealthOutputBody: {
@@ -657,7 +797,7 @@ export interface components {
              */
             status: string;
             /** @description Configured vessel (onboard only) */
-            vessel_id?: string;
+            vesselId?: string;
         };
         "Insp-ingestResponse": {
             /**
@@ -677,13 +817,13 @@ export interface components {
              */
             readonly $schema?: string;
             /** @enum {string} */
-            condition_status: "Good" | "Monitor" | "Action";
-            external_id?: string;
+            conditionStatus: "Good" | "Monitor" | "Action";
+            externalId?: string;
             /** Format: date-time */
-            inspected_at?: string;
-            inspected_by?: string;
+            inspectedAt?: string;
+            inspectedBy?: string;
             notes?: string;
-            serial_number: string;
+            serialNumber: string;
         };
         InspLogBody: {
             /**
@@ -693,27 +833,27 @@ export interface components {
              */
             readonly $schema?: string;
             /** @enum {string} */
-            condition_status: "Good" | "Monitor" | "Action";
+            conditionStatus: "Good" | "Monitor" | "Action";
             /** Format: date-time */
-            inspected_at?: string;
-            inspected_by?: string;
+            inspectedAt?: string;
+            inspectedBy?: string;
             notes?: string;
         };
         InspLogbookEntry: {
-            condition_status: string;
+            conditionStatus: string;
             /** Format: date-time */
-            created_at: string;
-            external_id?: string;
+            createdAt: string;
+            externalId?: string;
             id: string;
             /** Format: date-time */
-            inspected_at: string;
-            inspected_by?: string;
-            line_id: string;
-            line_name: string;
+            inspectedAt: string;
+            inspectedBy?: string;
+            lineId: string;
+            lineName: string;
             notes?: string;
-            serial_number: string;
+            serialNumber: string;
             source: string;
-            vessel_id: string;
+            vesselId: string;
         };
         Inspection: {
             /**
@@ -722,18 +862,18 @@ export interface components {
              * @example https://example.com/schemas/Inspection.json
              */
             readonly $schema?: string;
-            condition_status: string;
+            conditionStatus: string;
             /** Format: date-time */
-            created_at: string;
-            external_id?: string;
+            createdAt: string;
+            externalId?: string;
             id: string;
             /** Format: date-time */
-            inspected_at: string;
-            inspected_by?: string;
-            line_id: string;
+            inspectedAt: string;
+            inspectedBy?: string;
+            lineId: string;
             notes?: string;
             source: string;
-            vessel_id: string;
+            vesselId: string;
         };
         Layout: {
             /**
@@ -743,7 +883,7 @@ export interface components {
              */
             readonly $schema?: string;
             storage: components["schemas"]["Storage"][] | null;
-            vessel_id: string;
+            vesselId: string;
             winches: components["schemas"]["Winch"][] | null;
         };
         Line: {
@@ -753,51 +893,55 @@ export interface components {
              * @example https://example.com/schemas/Line.json
              */
             readonly $schema?: string;
+            /** Format: double */
+            breakLoad?: number;
             /** Format: int64 */
-            build_age_days: number;
-            can_be_turned: boolean;
-            certificate_number?: string;
-            certificate_ref?: string;
+            buildAgeDays: number;
+            canBeTurned: boolean;
+            certificateNumber?: string;
+            certificateRef?: string;
             components: components["schemas"]["Line"][] | null;
-            construction_type?: string;
-            current_condition_status?: string;
-            current_drum_id?: string;
-            current_side?: string;
-            current_storage_id?: string;
+            constructionType?: string;
+            currentConditionStatus?: string;
+            currentDrumId?: string;
+            currentSide?: string;
+            currentStorageId?: string;
             id: string;
             /** Format: int64 */
-            install_age_days: number;
+            installAgeDays: number;
             /** Format: date-time */
-            installation_date?: string;
+            installationDate?: string;
             installed: boolean;
             /** Format: double */
             length?: number;
-            lifecycle_status: string;
-            line_type_name: string;
-            location_label: string;
-            maker_name: string;
+            lifecycleStatus: string;
+            lineTypeName: string;
+            locationLabel: string;
+            makerName: string;
             /** Format: date-time */
-            manufacture_date?: string;
+            manufactureDate?: string;
             name: string;
             /** Format: date-time */
-            next_inspection_due?: string;
-            parent_line_id?: string;
-            product_id: string;
-            product_name: string;
-            serial_number: string;
+            nextInspectionDue?: string;
+            parentLineId?: string;
+            productId: string;
+            productName: string;
+            serialNumber: string;
             /** Format: int64 */
-            side_a_age_days: number;
+            sideAAgeDays: number;
             /** Format: date-time */
-            side_a_change_date?: string;
-            side_a_condition?: string;
+            sideAChangeDate?: string;
+            sideACondition?: string;
             /** Format: int64 */
-            side_b_age_days: number;
+            sideBAgeDays: number;
             /** Format: date-time */
-            side_b_change_date?: string;
-            side_b_condition?: string;
-            tag_number?: string;
-            turn_due: boolean;
-            vessel_id: string;
+            sideBChangeDate?: string;
+            sideBCondition?: string;
+            /** Format: double */
+            swl?: number;
+            tagNumber?: string;
+            turnDue: boolean;
+            vesselId: string;
         };
         LineBody: {
             /**
@@ -806,45 +950,45 @@ export interface components {
              * @example https://example.com/schemas/LineBody.json
              */
             readonly $schema?: string;
-            certificate_number?: string;
+            certificateNumber?: string;
             /** @enum {string} */
-            current_side?: "A" | "B" | "n/a";
+            currentSide?: "A" | "B" | "n/a";
             /** Format: date */
-            installation_date?: string;
+            installationDate?: string;
             /** Format: double */
             length?: number;
             /** @enum {string} */
-            lifecycle_status?: "ordered" | "active" | "spare" | "retired";
+            lifecycleStatus?: "ordered" | "active" | "spare" | "retired";
             /** Format: date */
-            manufacture_date?: string;
+            manufactureDate?: string;
             name: string;
             /** Format: uuid */
-            product_id: string;
-            serial_number: string;
-            tag_number?: string;
+            productId: string;
+            serialNumber: string;
+            tagNumber?: string;
         };
         LineRow: {
             /** Format: int64 */
-            build_age_days: number;
-            certificate_number?: string;
-            current_condition_status?: string;
-            current_drum_id?: string;
-            current_side?: string;
-            current_storage_id?: string;
+            buildAgeDays: number;
+            certificateNumber?: string;
+            currentConditionStatus?: string;
+            currentDrumId?: string;
+            currentSide?: string;
+            currentStorageId?: string;
             id: string;
             /** Format: int64 */
-            install_age_days: number;
+            installAgeDays: number;
             installed: boolean;
-            lifecycle_status: string;
-            line_type_name: string;
-            location_label: string;
-            maker_name: string;
+            lifecycleStatus: string;
+            lineTypeName: string;
+            locationLabel: string;
+            makerName: string;
             name: string;
             /** Format: date-time */
-            next_inspection_due?: string;
-            product_name: string;
-            serial_number: string;
-            tag_number?: string;
+            nextInspectionDue?: string;
+            productName: string;
+            serialNumber: string;
+            tagNumber?: string;
         };
         LineType: {
             /**
@@ -886,21 +1030,40 @@ export interface components {
              * @example https://example.com/schemas/Move-lineRequest.json
              */
             readonly $schema?: string;
-            to_drum_id?: string;
-            to_storage_id?: string;
+            toDrumId?: string;
+            toStorageId?: string;
+        };
+        NewAPIKey: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/NewAPIKey.json
+             */
+            readonly $schema?: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            keyPrefix: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            name: string;
+            plainKey: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            userId: string;
         };
         OverAttentionItem: {
-            condition_status: string;
+            conditionStatus: string;
             id: string;
-            location_label: string;
+            locationLabel: string;
             name: string;
-            serial_number: string;
+            serialNumber: string;
         };
         OverRecentInspection: {
-            condition_status: string;
+            conditionStatus: string;
             /** Format: date-time */
-            inspected_at: string;
-            line_name: string;
+            inspectedAt: string;
+            lineName: string;
         };
         OverTrendPoint: {
             /** Format: int64 */
@@ -919,19 +1082,19 @@ export interface components {
             /** Format: int64 */
             action: number;
             /** Format: int64 */
-            active_lines: number;
+            activeLines: number;
             attention: components["schemas"]["OverAttentionItem"][] | null;
             /** Format: int64 */
-            avg_install_age_days: number;
+            avgInstallAgeDays: number;
             /** Format: int64 */
             good: number;
             /** Format: int64 */
-            inspections_due: number;
+            inspectionsDue: number;
             /** Format: int64 */
             monitor: number;
             /** Format: int64 */
-            needing_attention: number;
-            recent_inspections: components["schemas"]["OverRecentInspection"][] | null;
+            needingAttention: number;
+            recentInspections: components["schemas"]["OverRecentInspection"][] | null;
             /** Format: int64 */
             spares: number;
             trend: components["schemas"]["OverTrendPoint"][] | null;
@@ -943,18 +1106,22 @@ export interface components {
              * @example https://example.com/schemas/Product.json
              */
             readonly $schema?: string;
-            can_be_turned: boolean;
-            construction_type?: string;
             /** Format: double */
-            default_length?: number;
+            breakLoad?: number;
+            canBeTurned: boolean;
+            constructionType?: string;
+            /** Format: double */
+            defaultLength?: number;
             id: string;
-            line_type_id: string;
-            line_type_name: string;
-            maker_id: string;
-            maker_name: string;
-            manufacturer_manual_ref?: string;
+            lineTypeId: string;
+            lineTypeName: string;
+            makerId: string;
+            makerName: string;
+            manufacturerManualRef?: string;
             notes?: string;
-            product_name: string;
+            productName: string;
+            /** Format: double */
+            swl?: number;
         };
         "Save-layoutRequest": {
             /**
@@ -970,10 +1137,10 @@ export interface components {
             id: string;
             label: string;
             /** Format: int64 */
-            line_count: number;
-            on_map: boolean;
+            lineCount: number;
+            onMap: boolean;
             station: string;
-            worst_status?: string;
+            worstStatus?: string;
             /** Format: double */
             x: number;
             /** Format: double */
@@ -982,7 +1149,7 @@ export interface components {
         StorageBody: {
             id?: string;
             label: string;
-            on_map?: boolean;
+            onMap?: boolean;
             station?: string;
             /** Format: double */
             x: number;
@@ -1006,6 +1173,33 @@ export interface components {
              */
             readonly $schema?: string;
             note?: string;
+        };
+        "Update-userRequest": {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/Update-userRequest.json
+             */
+            readonly $schema?: string;
+            active?: boolean;
+            /** @enum {string} */
+            role?: "admin" | "vessel_user" | "readonly";
+        };
+        User: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example https://example.com/schemas/User.json
+             */
+            readonly $schema?: string;
+            active: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            email: string;
+            id: string;
+            name: string;
+            role: string;
+            vesselId?: string;
         };
         Vessel: {
             /**
@@ -1034,7 +1228,7 @@ export interface components {
             };
             name?: string;
             /** @description Body template with {{variable}} substitution. Empty = default JSON envelope. */
-            payload_template?: string;
+            payloadTemplate?: string;
             /** @description HMAC-SHA256 signing key. Leave empty on update to keep the current secret. */
             secret?: string;
             /**
@@ -1057,43 +1251,49 @@ export interface components {
             readonly $schema?: string;
             active: boolean;
             /** Format: date-time */
-            created_at: string;
+            createdAt: string;
             events: string[] | null;
-            has_secret: boolean;
+            hasSecret: boolean;
             headers: {
                 [key: string]: string;
             };
             id: string;
             name: string;
-            payload_template?: string;
+            payloadTemplate?: string;
             url: string;
-            vessel_id?: string;
+            vesselId?: string;
         };
         Winch: {
-            drive_type: string;
+            /** Format: double */
+            breakLoad?: number;
+            driveType: string;
             /** Format: int64 */
-            drum_count: number;
+            drumCount: number;
             drums: components["schemas"]["Drum"][] | null;
             id: string;
             label: string;
-            label_auto: boolean;
+            labelAuto: boolean;
             /** Format: int64 */
             orientation: number;
             station: string;
-            worst_status?: string;
+            /** Format: double */
+            swl?: number;
+            worstStatus?: string;
             /** Format: double */
             x: number;
             /** Format: double */
             y: number;
         };
         WinchBody: {
+            /** Format: double */
+            breakLoad?: number;
             /** @enum {string} */
-            drive_type?: "electric" | "hydraulic";
+            driveType?: "electric" | "hydraulic";
             /** Format: int64 */
-            drum_count: number;
+            drumCount: number;
             id?: string;
             label: string;
-            label_auto?: boolean;
+            labelAuto?: boolean;
             /**
              * Format: int64
              * @enum {integer}
@@ -1101,6 +1301,8 @@ export interface components {
             orientation: 0 | 45 | -45 | 90 | -90;
             /** @enum {string} */
             station: "fwd" | "aft";
+            /** Format: double */
+            swl?: number;
             /** Format: double */
             x: number;
             /** Format: double */
@@ -1115,6 +1317,35 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "revoke-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -1180,7 +1411,7 @@ export interface operations {
     "insp-logbook": {
         parameters: {
             query?: {
-                vessel_id?: string;
+                vesselId?: string;
                 limit?: number;
             };
             header?: never;
@@ -1667,6 +1898,35 @@ export interface operations {
             };
         };
     };
+    whoami: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthUser"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
     "file-del-photo": {
         parameters: {
             query?: never;
@@ -1699,8 +1959,8 @@ export interface operations {
     "list-products": {
         parameters: {
             query?: {
-                maker_id?: string;
-                line_type_id?: string;
+                makerId?: string;
+                lineTypeId?: string;
             };
             header?: never;
             path?: never;
@@ -1795,7 +2055,7 @@ export interface operations {
     "insp-report": {
         parameters: {
             query?: {
-                vessel_id?: string;
+                vesselId?: string;
                 format?: "pdf" | "csv";
             };
             header?: never;
@@ -1813,6 +2073,169 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "list-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"][] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "create-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Create-userRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "update-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Update-userRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "list-api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKey"][] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "create-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Create-api-keyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewAPIKey"];
                 };
             };
             /** @description Error */
@@ -1893,7 +2316,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                vessel_id: string;
+                vesselId: string;
             };
             cookie?: never;
         };
@@ -1924,7 +2347,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                vessel_id: string;
+                vesselId: string;
             };
             cookie?: never;
         };
@@ -1955,7 +2378,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                vessel_id: string;
+                vesselId: string;
             };
             cookie?: never;
         };
@@ -1988,7 +2411,7 @@ export interface operations {
     "list-lines": {
         parameters: {
             query?: {
-                line_type_id?: string;
+                lineTypeId?: string;
                 condition?: "Good" | "Monitor" | "Action";
                 placement?: "installed" | "spare";
                 q?: string;
@@ -1997,7 +2420,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                vessel_id: string;
+                vesselId: string;
             };
             cookie?: never;
         };
@@ -2028,7 +2451,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                vessel_id: string;
+                vesselId: string;
             };
             cookie?: never;
         };
@@ -2063,7 +2486,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                vessel_id: string;
+                vesselId: string;
             };
             cookie?: never;
         };
@@ -2121,7 +2544,7 @@ export interface operations {
     "list-webhooks": {
         parameters: {
             query?: {
-                vessel_id?: string;
+                vesselId?: string;
             };
             header?: never;
             path?: never;
@@ -2152,7 +2575,7 @@ export interface operations {
     "create-webhook": {
         parameters: {
             query?: {
-                vessel_id?: string;
+                vesselId?: string;
             };
             header?: never;
             path?: never;

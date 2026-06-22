@@ -75,19 +75,18 @@ func (s *Server) clearSessionCookie(w http.ResponseWriter) {
 // setOAuthStateCookie stores the login's state value in a short-lived,
 // HttpOnly cookie so the callback can prove the same browser started the flow.
 //
-// It MUST use SameSite=None so the browser still sends it on the cross-site
-// top-level redirect back from the identity provider to /auth/callback; with
-// the default SameSite=Lax the cookie is dropped on that hop and every login
-// fails the state check. SameSite=None requires Secure — http://localhost and
-// https origins are both secure contexts, so this works in dev and prod.
+// SameSite=Lax is correct here: the callback is a top-level GET navigation
+// (the IdP 302s the browser back to /auth/callback), and Lax cookies ARE sent
+// on top-level cross-site navigations. SameSite=None is wrong — it is treated
+// as a third-party cookie and blocked by default in incognito/strict modes.
 func (s *Server) setOAuthStateCookie(w http.ResponseWriter, state string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     oauthStateCookieName,
 		Value:    state,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+		Secure:   s.secureCookie(),
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(flowTTL / time.Second),
 	})
 }
@@ -98,8 +97,8 @@ func (s *Server) clearOAuthStateCookie(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteNoneMode,
+		Secure:   s.secureCookie(),
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
 }
@@ -168,6 +167,10 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	s.clearOAuthStateCookie(w)
 	if boundState == "" || subtle.ConstantTimeCompare([]byte(boundState), []byte(state)) != 1 {
+		slog.Warn("oauth state binding failed",
+			"cookie_present", boundState != "",
+			"cookie_matches_query", boundState != "" && boundState == state,
+			"has_state_query", state != "")
 		s.redirectAuthError(w, r, "state_mismatch")
 		return
 	}
@@ -285,6 +288,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 
 // redirectAuthError sends the browser back to the app base with an error marker.
 func (s *Server) redirectAuthError(w http.ResponseWriter, r *http.Request, reason string) {
+	slog.Warn("auth callback rejected", "reason", reason, "path", r.URL.Path)
 	http.Redirect(w, r, "/?auth_error="+reason, http.StatusFound)
 }
 

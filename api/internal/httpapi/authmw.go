@@ -53,6 +53,11 @@ func AuthMiddleware(api huma.API, s *Server) func(huma.Context, func(huma.Contex
 			path = op.Path
 		}
 		if isPublicPath(path) {
+			// Public paths are never rejected, but we still resolve the session
+			// best-effort so /auth/session can report the authenticated principal.
+			// (Without this it always looks unauthenticated, and the SPA's
+			// RequireAuth bounces straight back into /auth/login — a redirect loop.)
+			s.attachUserBestEffort(&ctx)
 			next(ctx)
 			return
 		}
@@ -63,37 +68,58 @@ func AuthMiddleware(api huma.API, s *Server) func(huma.Context, func(huma.Contex
 			return
 		}
 
-		sid := cookieValue(ctx.Header("Cookie"), sessionCookieName)
-		if sid == "" {
+		user, perms, ok := s.resolveSession(ctx)
+		if !ok {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "authentication required")
 			return
 		}
-
-		sess, err := s.Store.GetSession(ctx.Context(), sid)
-		if err != nil {
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, "invalid session")
-			return
-		}
-		user, err := s.Store.GetUser(ctx.Context(), sess.UserID)
-		if err != nil {
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, "invalid session")
-			return
-		}
-
-		perms := auth.PermissionsFor(user.Groups, s.Cfg.OIDCAdminGroup)
 
 		if isMutating(ctx.Method()) && !perms.CanWrite {
 			huma.WriteErr(api, ctx, http.StatusForbidden, "read-only: write access requires the admin group")
 			return
 		}
 
-		// Best-effort liveness touch; ignore errors.
-		_ = s.Store.TouchSession(ctx.Context(), sid)
-
 		ctx = huma.WithValue(ctx, ctxUserKey, user)
 		ctx = huma.WithValue(ctx, ctxPermsKey, perms)
 		next(ctx)
 	}
+}
+
+// resolveSession looks up the user + permissions for the request's session
+// cookie. ok is false when there is no cookie, no matching session, or the
+// store is unavailable — callers decide whether that is fatal.
+func (s *Server) resolveSession(ctx huma.Context) (store.User, auth.Permissions, bool) {
+	if s.Store == nil {
+		return store.User{}, auth.Permissions{}, false
+	}
+	sid := cookieValue(ctx.Header("Cookie"), sessionCookieName)
+	if sid == "" {
+		return store.User{}, auth.Permissions{}, false
+	}
+	sess, err := s.Store.GetSession(ctx.Context(), sid)
+	if err != nil {
+		return store.User{}, auth.Permissions{}, false
+	}
+	user, err := s.Store.GetUser(ctx.Context(), sess.UserID)
+	if err != nil {
+		return store.User{}, auth.Permissions{}, false
+	}
+	perms := auth.PermissionsFor(user.Groups, s.Cfg.OIDCAdminGroup)
+	// Best-effort liveness touch; ignore errors.
+	_ = s.Store.TouchSession(ctx.Context(), sid)
+	return user, perms, true
+}
+
+// attachUserBestEffort resolves the session and, if present, attaches the user
+// and permissions to the context without ever rejecting the request. Used for
+// public paths like /auth/session that must report auth state, not enforce it.
+func (s *Server) attachUserBestEffort(ctx *huma.Context) {
+	user, perms, ok := s.resolveSession(*ctx)
+	if !ok {
+		return
+	}
+	*ctx = huma.WithValue(*ctx, ctxUserKey, user)
+	*ctx = huma.WithValue(*ctx, ctxPermsKey, perms)
 }
 
 // userFromContext returns the authenticated user, if any.

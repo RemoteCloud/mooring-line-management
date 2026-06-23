@@ -23,6 +23,7 @@ export interface Product {
   lineTypeId: string;
   lineTypeName: string;
   productName: string;
+  modelNumber?: string;
   constructionType?: string;
   defaultLength?: number;
   swl?: number;
@@ -46,6 +47,7 @@ export interface CreateProductBody {
   makerId: string;
   lineTypeId: string;
   productName: string;
+  modelNumber?: string;
   constructionType?: string;
   defaultLength?: number;
   swl?: number;

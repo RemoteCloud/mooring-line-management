@@ -14,7 +14,9 @@ func registerVessel(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "list-vessels", Method: http.MethodGet, Path: "/vessels",
-		Summary: "List vessels", Tags: tag,
+		Summary:     "List vessels",
+		Description: "Returns vessels visible to this deployment. Onboard, that is the single configured vessel; shore returns the fleet.",
+		Tags:        tag,
 	}, func(ctx context.Context, _ *struct{}) (*struct{ Body []store.Vessel }, error) {
 		v, err := s.Store.ListVessels(ctx)
 		if err != nil {
@@ -25,11 +27,13 @@ func registerVessel(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "create-vessel", Method: http.MethodPost, Path: "/vessels",
-		Summary: "Create vessel", Tags: tag, DefaultStatus: http.StatusCreated,
+		Summary:     "Create a vessel",
+		Description: "Registers a vessel (shore use). Onboard deployments serve a single pre-provisioned vessel.",
+		Tags:        tag, DefaultStatus: http.StatusCreated,
 	}, func(ctx context.Context, in *struct {
 		Body struct {
-			Name string `json:"name" minLength:"1"`
-			IMO  string `json:"imo,omitempty"`
+			Name string `json:"name" minLength:"1" doc:"Vessel name" example:"Norwegian Luna"`
+			IMO  string `json:"imo,omitempty" doc:"IMO number, if known"`
 		}
 	}) (*struct{ Body store.Vessel }, error) {
 		v, err := s.Store.CreateVessel(ctx, in.Body.Name, in.Body.IMO)
@@ -41,7 +45,9 @@ func registerVessel(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "get-vessel", Method: http.MethodGet, Path: "/vessels/{vesselId}",
-		Summary: "Get vessel", Tags: tag,
+		Summary:     "Get a vessel",
+		Description: "Returns one vessel's identity. Onboard, any id resolves to the configured vessel.",
+		Tags:        tag, Errors: []int{http.StatusNotFound},
 	}, func(ctx context.Context, in *struct {
 		VesselID string `path:"vesselId" format:"uuid"`
 	}) (*struct{ Body store.Vessel }, error) {
@@ -54,20 +60,34 @@ func registerVessel(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "get-layout", Method: http.MethodGet, Path: "/vessels/{vesselId}/layout",
-		Summary: "Get deck layout (winches, drums, storage with worst-case status)", Tags: tag,
+		Summary: "Get deck layout (winches, drums, storage with worst-case status)",
+		Description: "Returns the vessel's deck plan: winches with their drums and storage areas, " +
+			"each carrying the worst-case condition of the lines it holds. Winch and storage positions " +
+			"are normalized (x,y in 0..1) against a 1000x600 deck. Pass `?thumbnails=true` to also receive, " +
+			"per winch, a base64 SVG `thumbnail` of that winch highlighted on the deck.",
+		Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `path:"vesselId" format:"uuid"`
+		VesselID   string `path:"vesselId" format:"uuid"`
+		Thumbnails bool   `query:"thumbnails" doc:"When true, each winch carries a base64 SVG data-URI thumbnail of itself highlighted on the deck"`
 	}) (*struct{ Body store.Layout }, error) {
 		l, err := s.Store.GetLayout(ctx, s.vessel(in.VesselID))
 		if err != nil {
 			return nil, mapErr(err)
+		}
+		if in.Thumbnails {
+			for i := range l.Winches {
+				l.Winches[i].Thumbnail = winchThumbnailDataURI(l, l.Winches[i].ID)
+			}
 		}
 		return &struct{ Body store.Layout }{Body: l}, nil
 	})
 
 	huma.Register(api, huma.Operation{
 		OperationID: "save-layout", Method: http.MethodPut, Path: "/vessels/{vesselId}/layout",
-		Summary: "Replace deck layout (staged edit save)", Tags: tag,
+		Summary: "Replace the deck layout",
+		Description: "Replaces the vessel's winches and storage areas in one call (the staged-edit save from the deck editor). " +
+			"Positions are normalized (x,y in 0..1). Fires `layout.updated`.",
+		Tags: tag,
 	}, func(ctx context.Context, in *struct {
 		VesselID string `path:"vesselId" format:"uuid"`
 		Body     struct {

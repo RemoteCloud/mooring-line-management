@@ -352,6 +352,7 @@ function ProductsPanel() {
           <thead>
             <tr>
               <th>Product</th>
+              <th>Model</th>
               <th>Maker</th>
               <th>Type</th>
               <th>Construction</th>
@@ -365,6 +366,7 @@ function ProductsPanel() {
             {products?.map((p) => (
               <EditableRow key={p.id} onEdit={() => setEditing(p)}>
                 <td>{p.productName}</td>
+                <td className="muted">{p.modelNumber || "—"}</td>
                 <td className="muted">{p.makerName}</td>
                 <td>{p.lineTypeName}</td>
                 <td>{p.constructionType || "—"}</td>
@@ -378,21 +380,21 @@ function ProductsPanel() {
             ))}
             {isLoading && (
               <tr>
-                <td colSpan={8} className="muted catalogue-empty">
+                <td colSpan={9} className="muted catalogue-empty">
                   Loading…
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={8} className="err catalogue-empty">
+                <td colSpan={9} className="err catalogue-empty">
                   Could not load products.
                 </td>
               </tr>
             )}
             {!isLoading && !isError && products?.length === 0 && (
               <tr>
-                <td colSpan={8} className="muted catalogue-empty">
+                <td colSpan={9} className="muted catalogue-empty">
                   No products yet. Add the first one.
                 </td>
               </tr>
@@ -428,6 +430,7 @@ function ProductDialog({
     makerId: product?.makerId ?? "",
     lineTypeId: product?.lineTypeId ?? "",
     productName: product?.productName ?? "",
+    modelNumber: product?.modelNumber ?? "",
     constructionType: product?.constructionType ?? "",
     defaultLength: num(product?.defaultLength),
     swl: num(product?.swl),
@@ -465,6 +468,7 @@ function ProductDialog({
       makerId: form.makerId,
       lineTypeId: form.lineTypeId,
       productName: form.productName.trim(),
+      modelNumber: form.modelNumber.trim() || undefined,
       constructionType: form.constructionType.trim() || undefined,
       defaultLength: form.defaultLength ? Number(form.defaultLength) : undefined,
       swl: form.swl ? Number(form.swl) : undefined,
@@ -523,14 +527,26 @@ function ProductDialog({
         </div>
       </div>
 
-      <div className="field">
-        <label htmlFor="prod-name">Product name</label>
-        <input
-          id="prod-name"
-          className="input"
-          value={form.productName}
-          onChange={setField("productName")}
-        />
+      <div className="row2">
+        <div className="field">
+          <label htmlFor="prod-name">Product name</label>
+          <input
+            id="prod-name"
+            className="input"
+            value={form.productName}
+            onChange={setField("productName")}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="prod-model">Model number</label>
+          <input
+            id="prod-model"
+            className="input"
+            value={form.modelNumber}
+            onChange={setField("modelNumber")}
+            placeholder="optional"
+          />
+        </div>
       </div>
 
       <div className="row2">

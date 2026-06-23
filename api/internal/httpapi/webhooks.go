@@ -31,6 +31,7 @@ var webhookEventCatalog = []webhookEventInfo{
 	{"line.moved", "A line was moved to a drum or storage", withCommon("payload.id", "payload.drumId", "payload.storageId")},
 	{"line.turned", "A line was turned end-for-end", withCommon("payload.id", "payload.side")},
 	{"inspection.logged", "An inspection was logged (manual or ingested)", withCommon("payload.id", "payload.lineId", "payload.conditionStatus")},
+	{"inspection.feedback", "Feedback was attached to an inspection", withCommon("payload.id", "payload.inspectionId", "payload.status")},
 	{"photo.added", "A condition photo was attached to a line", withCommon("payload.id", "payload.lineId", "payload.fileRef")},
 	{"document.added", "A document was uploaded for a line", withCommon("payload.id", "payload.lineId", "payload.kind", "payload.fileRef")},
 	{"layout.updated", "The deck layout was saved", withCommon("payload.vesselId")},
@@ -69,7 +70,11 @@ func registerWebhooks(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "list-webhook-events", Method: http.MethodGet, Path: "/webhook-events",
-		Summary: "List fireable webhook event types", Tags: tag,
+		Summary: "List fireable webhook event types",
+		Description: "Returns every event a subscription can deliver, with the `{{variables}}` available to its header and " +
+			"payload templates. Deliveries are POSTed as a JSON envelope (`event`, `eventId`, `vesselId`, `aggregate`, " +
+			"`aggregateId`, `createdAt`, `data`) and signed with `X-Signature-256: sha256=<hmac>` when a secret is set.",
+		Tags: tag,
 	}, func(_ context.Context, _ *struct{}) (*struct{ Body []webhookEventInfo }, error) {
 		return &struct{ Body []webhookEventInfo }{Body: webhookEventCatalog}, nil
 	})
@@ -92,7 +97,10 @@ func registerWebhooks(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "create-webhook", Method: http.MethodPost, Path: "/webhooks",
-		Summary: "Create webhook subscription", Tags: tag, DefaultStatus: http.StatusCreated,
+		Summary: "Create a webhook subscription",
+		Description: "Subscribes a URL to events. Leave `events` empty to receive all. Set a `secret` to get HMAC-SHA256 " +
+			"signatures. Onboard, the subscription is scoped to the configured vessel.",
+		Tags: tag, DefaultStatus: http.StatusCreated,
 	}, func(ctx context.Context, in *struct {
 		VesselID string `query:"vesselId"`
 		Body     webhookBody
@@ -147,7 +155,10 @@ func registerWebhooks(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "test-webhook", Method: http.MethodPost, Path: "/webhooks/{id}/test",
-		Summary: "Send a test delivery to a webhook", Tags: tag,
+		Summary: "Send a test delivery to a webhook",
+		Description: "Delivers a synthetic `webhook.test` event to the subscription's URL so you can verify reachability, " +
+			"headers, and signature handling before relying on live events.",
+		Tags: tag, Errors: []int{http.StatusNotFound, http.StatusBadGateway},
 	}, func(ctx context.Context, in *struct {
 		ID string `path:"id" format:"uuid"`
 	}) (*struct {

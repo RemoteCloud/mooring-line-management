@@ -23,12 +23,13 @@ type Product struct {
 	LineTypeID            string   `json:"lineTypeId"`
 	LineTypeName          string   `json:"lineTypeName"`
 	ProductName           string   `json:"productName"`
-	ConstructionType      string   `json:"constructionType,omitempty"`
-	DefaultLength         *float64 `json:"defaultLength,omitempty"`
-	SWL                   *float64 `json:"swl,omitempty"`       // safe working load, tonnes
-	BreakLoad             *float64 `json:"breakLoad,omitempty"` // break load / MBL, tonnes
-	CanBeTurned           bool     `json:"canBeTurned"`
-	ManufacturerManualRef string   `json:"manufacturerManualRef,omitempty"`
+	ModelNumber           string   `json:"modelNumber,omitempty" doc:"Manufacturer model/article number"`
+	ConstructionType      string   `json:"constructionType,omitempty" doc:"Rope construction, e.g. 8-strand, 12-strand, double-braid"`
+	DefaultLength         *float64 `json:"defaultLength,omitempty" doc:"Default line length in metres"`
+	SWL                   *float64 `json:"swl,omitempty" doc:"Safe working load in tonnes"`
+	BreakLoad             *float64 `json:"breakLoad,omitempty" doc:"Break load / minimum breaking load (MBL) in tonnes"`
+	CanBeTurned           bool     `json:"canBeTurned" doc:"Whether lines of this product can be turned end-for-end to even out wear"`
+	ManufacturerManualRef string   `json:"manufacturerManualRef,omitempty" doc:"Reference to the manufacturer's manual/datasheet"`
 	Notes                 string   `json:"notes,omitempty"`
 }
 
@@ -42,24 +43,27 @@ type Vessel struct {
 
 type Drum struct {
 	ID        string `json:"id"`
-	Idx       int    `json:"idx"`
-	LineCount int    `json:"lineCount"`
+	Idx       int    `json:"idx" doc:"1-based drum position on the winch"`
+	LineCount int    `json:"lineCount" doc:"Number of lines currently on this drum"`
 }
 
 type Winch struct {
 	ID          string  `json:"id"`
 	Label       string  `json:"label"`
-	Station     string  `json:"station"`
-	X           float64 `json:"x"`
-	Y           float64 `json:"y"`
-	Orientation int     `json:"orientation"`
-	DrumCount   int      `json:"drumCount"`
-	DriveType   string   `json:"driveType"`
-	LabelAuto   bool     `json:"labelAuto"`
-	SWL         *float64 `json:"swl,omitempty"`       // safe working load, tonnes
-	BreakLoad   *float64 `json:"breakLoad,omitempty"` // break load, tonnes
-	WorstStatus string   `json:"worstStatus,omitempty"`
+	Station     string  `json:"station" doc:"Which deck the winch is on" enum:"fwd,aft"`
+	X           float64 `json:"x" doc:"Normalized horizontal position (0..1) across the deck"`
+	Y           float64 `json:"y" doc:"Normalized vertical position (0..1) down the deck"`
+	Orientation int     `json:"orientation" doc:"Rotation in degrees" enum:"0,45,-45,90,-90"`
+	DrumCount   int      `json:"drumCount" doc:"Number of drums on the winch"`
+	DriveType   string   `json:"driveType" doc:"Winch drive" enum:"electric,hydraulic"`
+	LabelAuto   bool     `json:"labelAuto" doc:"Whether the label is auto-generated from position"`
+	SWL         *float64 `json:"swl,omitempty" doc:"Safe working load in tonnes"`
+	BreakLoad   *float64 `json:"breakLoad,omitempty" doc:"Break load in tonnes"`
+	WorstStatus string   `json:"worstStatus,omitempty" doc:"Worst condition among the lines on this winch" enum:"Good,Monitor,Action"`
 	Drums       []Drum   `json:"drums"`
+	// Thumbnail is a base64 SVG data-URI of this winch highlighted on the deck.
+	// Only populated when the layout is requested with ?thumbnails=true.
+	Thumbnail string `json:"thumbnail,omitempty"`
 }
 
 type Storage struct {

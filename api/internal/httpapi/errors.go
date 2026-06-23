@@ -22,6 +22,8 @@ func mapErr(err error) error {
 		return huma.Error409Conflict("position still holds a line")
 	case errors.Is(err, store.ErrInvalidMoveTarget):
 		return huma.Error422UnprocessableEntity("invalid move target: name exactly one destination on this vessel")
+	case errors.Is(err, store.ErrNotTurnable):
+		return huma.Error422UnprocessableEntity("line cannot be turned: its product is not turnable")
 	default:
 		return huma.Error500InternalServerError("internal error", err)
 	}

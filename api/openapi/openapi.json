@@ -44,7 +44,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/AuthUser.json"
+              "/api/schemas/AuthUser.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -80,7 +80,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Create-api-keyRequest.json"
+              "/api/schemas/Create-api-keyRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -102,7 +102,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Create-line-typeRequest.json"
+              "/api/schemas/Create-line-typeRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -127,7 +127,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Create-makerRequest.json"
+              "/api/schemas/Create-makerRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -152,7 +152,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Create-productRequest.json"
+              "/api/schemas/Create-productRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -183,6 +183,9 @@
           "manufacturerManualRef": {
             "type": "string"
           },
+          "modelNumber": {
+            "type": "string"
+          },
           "notes": {
             "type": "string"
           },
@@ -209,7 +212,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Create-userRequest.json"
+              "/api/schemas/Create-userRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -250,16 +253,21 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Create-vesselRequest.json"
+              "/api/schemas/Create-vesselRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "imo": {
+            "description": "IMO number, if known",
             "type": "string"
           },
           "name": {
+            "description": "Vessel name",
+            "examples": [
+              "Norwegian Luna"
+            ],
             "minLength": 1,
             "type": "string"
           }
@@ -276,10 +284,12 @@
             "type": "string"
           },
           "idx": {
+            "description": "1-based drum position on the winch",
             "format": "int64",
             "type": "integer"
           },
           "lineCount": {
+            "description": "Number of lines currently on this drum",
             "format": "int64",
             "type": "integer"
           }
@@ -314,7 +324,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/ErrorModel.json"
+              "/api/schemas/ErrorModel.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -378,7 +388,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/File-add-certRequest.json"
+              "/api/schemas/File-add-certRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -415,7 +425,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/File-add-photoRequest.json"
+              "/api/schemas/File-add-photoRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -462,7 +472,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/FileDoc.json"
+              "/api/schemas/FileDoc.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -520,7 +530,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/FilePhoto.json"
+              "/api/schemas/FilePhoto.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -570,7 +580,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/HealthOutputBody.json"
+              "/api/schemas/HealthOutputBody.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -609,13 +619,39 @@
         ],
         "type": "object"
       },
+      "Insp-feedbackResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/schemas/Insp-feedbackResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "created": {
+            "description": "False when this externalId was already recorded",
+            "type": "boolean"
+          },
+          "feedback": {
+            "$ref": "#/components/schemas/InspectionFeedback"
+          }
+        },
+        "required": [
+          "feedback",
+          "created"
+        ],
+        "type": "object"
+      },
       "Insp-ingestResponse": {
         "additionalProperties": false,
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Insp-ingestResponse.json"
+              "/api/schemas/Insp-ingestResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -634,40 +670,125 @@
         ],
         "type": "object"
       },
+      "InspFeedbackBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "/api/schemas/InspFeedbackBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "author": {
+            "description": "Person or system giving the feedback",
+            "examples": [
+              "Acme Rope Survey"
+            ],
+            "type": "string"
+          },
+          "conditionStatus": {
+            "description": "Optional condition the reviewer suggests for the line",
+            "enum": [
+              "Good",
+              "Monitor",
+              "Action"
+            ],
+            "examples": [
+              "Monitor"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "When the feedback was made; defaults to now",
+            "format": "date-time",
+            "type": "string"
+          },
+          "externalId": {
+            "description": "Caller-supplied idempotency key; replaying the same value returns the existing feedback with created=false",
+            "examples": [
+              "acme-rev-5512"
+            ],
+            "type": "string"
+          },
+          "notes": {
+            "examples": [
+              "Sheath abrasion confirmed at 12m; schedule re-inspection."
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "How the reviewer dispositioned the inspection",
+            "enum": [
+              "acknowledged",
+              "disputed",
+              "resolved",
+              "comment"
+            ],
+            "examples": [
+              "acknowledged"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
       "InspIngestBody": {
         "additionalProperties": false,
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/InspIngestBody.json"
+              "/api/schemas/InspIngestBody.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "conditionStatus": {
+            "description": "Assessed condition of the line",
             "enum": [
               "Good",
               "Monitor",
               "Action"
             ],
+            "examples": [
+              "Action"
+            ],
             "type": "string"
           },
           "externalId": {
+            "description": "Caller-supplied idempotency key; replaying the same value returns the existing inspection with created=false",
+            "examples": [
+              "acme-insp-88231"
+            ],
             "type": "string"
           },
           "inspectedAt": {
+            "description": "When the inspection happened (RFC3339); defaults to now",
             "format": "date-time",
             "type": "string"
           },
           "inspectedBy": {
+            "description": "Person or system that performed the inspection",
+            "examples": [
+              "Acme Rope Survey"
+            ],
             "type": "string"
           },
           "notes": {
             "type": "string"
           },
           "serialNumber": {
+            "description": "Serial of the line being inspected; used to resolve it (vessel-wide unique)",
+            "examples": [
+              "NCL-LUNA-0142"
+            ],
             "minLength": 1,
             "type": "string"
           }
@@ -684,28 +805,40 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/InspLogBody.json"
+              "/api/schemas/InspLogBody.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "conditionStatus": {
+            "description": "Assessed condition of the line",
             "enum": [
               "Good",
               "Monitor",
               "Action"
             ],
+            "examples": [
+              "Monitor"
+            ],
             "type": "string"
           },
           "inspectedAt": {
+            "description": "When the inspection happened (RFC3339); defaults to now",
             "format": "date-time",
             "type": "string"
           },
           "inspectedBy": {
+            "description": "Who performed the inspection",
+            "examples": [
+              "Bosun A. Hansen"
+            ],
             "type": "string"
           },
           "notes": {
+            "examples": [
+              "Light surface wear, no core damage."
+            ],
             "type": "string"
           }
         },
@@ -718,6 +851,12 @@
         "additionalProperties": false,
         "properties": {
           "conditionStatus": {
+            "description": "Assessed condition",
+            "enum": [
+              "Good",
+              "Monitor",
+              "Action"
+            ],
             "type": "string"
           },
           "createdAt": {
@@ -725,16 +864,19 @@
             "type": "string"
           },
           "externalId": {
+            "description": "Caller-supplied idempotency key (api source only)",
             "type": "string"
           },
           "id": {
             "type": "string"
           },
           "inspectedAt": {
+            "description": "When the inspection was performed",
             "format": "date-time",
             "type": "string"
           },
           "inspectedBy": {
+            "description": "Person or system that performed it",
             "type": "string"
           },
           "lineId": {
@@ -750,6 +892,11 @@
             "type": "string"
           },
           "source": {
+            "description": "How it was recorded",
+            "enum": [
+              "manual",
+              "api"
+            ],
             "type": "string"
           },
           "vesselId": {
@@ -775,13 +922,19 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Inspection.json"
+              "/api/schemas/Inspection.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "conditionStatus": {
+            "description": "Assessed condition",
+            "enum": [
+              "Good",
+              "Monitor",
+              "Action"
+            ],
             "type": "string"
           },
           "createdAt": {
@@ -789,16 +942,19 @@
             "type": "string"
           },
           "externalId": {
+            "description": "Caller-supplied idempotency key (api source only)",
             "type": "string"
           },
           "id": {
             "type": "string"
           },
           "inspectedAt": {
+            "description": "When the inspection was performed",
             "format": "date-time",
             "type": "string"
           },
           "inspectedBy": {
+            "description": "Person or system that performed it",
             "type": "string"
           },
           "lineId": {
@@ -808,6 +964,11 @@
             "type": "string"
           },
           "source": {
+            "description": "How it was recorded",
+            "enum": [
+              "manual",
+              "api"
+            ],
             "type": "string"
           },
           "vesselId": {
@@ -825,13 +986,74 @@
         ],
         "type": "object"
       },
+      "InspectionFeedback": {
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "description": "Person or system that gave the feedback",
+            "type": "string"
+          },
+          "conditionStatus": {
+            "description": "Optional condition the reviewer suggests",
+            "enum": [
+              "Good",
+              "Monitor",
+              "Action"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "externalId": {
+            "description": "Caller-supplied idempotency key; a repeat with the same value is ignored",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inspectionId": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "source": {
+            "description": "Where the feedback came from",
+            "enum": [
+              "api",
+              "manual"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "Feedback disposition",
+            "enum": [
+              "acknowledged",
+              "disputed",
+              "resolved",
+              "comment"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "inspectionId",
+          "source",
+          "status",
+          "createdAt"
+        ],
+        "type": "object"
+      },
       "Layout": {
         "additionalProperties": false,
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Layout.json"
+              "/api/schemas/Layout.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -872,7 +1094,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Line.json"
+              "/api/schemas/Line.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1036,16 +1258,18 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/LineBody.json"
+              "/api/schemas/LineBody.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "certificateNumber": {
+            "description": "Certificate reference",
             "type": "string"
           },
           "currentSide": {
+            "description": "Which end is rigged for turnable lines; n/a if not turnable",
             "enum": [
               "A",
               "B",
@@ -1058,10 +1282,12 @@
             "type": "string"
           },
           "length": {
+            "description": "Length in metres; defaults from the product",
             "format": "double",
             "type": "number"
           },
           "lifecycleStatus": {
+            "description": "ordered = pre-registered before arrival; active = in service; spare = held; retired = withdrawn",
             "enum": [
               "ordered",
               "active",
@@ -1075,18 +1301,28 @@
             "type": "string"
           },
           "name": {
+            "description": "Operational name/position",
+            "examples": [
+              "Fwd Spring 1"
+            ],
             "minLength": 1,
             "type": "string"
           },
           "productId": {
+            "description": "Catalogue product this line is built from (see GET /products)",
             "format": "uuid",
             "type": "string"
           },
           "serialNumber": {
+            "description": "Manufacturer serial; unique per vessel",
+            "examples": [
+              "NCL-LUNA-0142"
+            ],
             "minLength": 1,
             "type": "string"
           },
           "tagNumber": {
+            "description": "Physical asset tag, if any",
             "type": "string"
           }
         },
@@ -1179,7 +1415,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/LineType.json"
+              "/api/schemas/LineType.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1207,7 +1443,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/List-linesResponse.json"
+              "/api/schemas/List-linesResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1239,7 +1475,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Maker.json"
+              "/api/schemas/Maker.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1267,16 +1503,20 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Move-lineRequest.json"
+              "/api/schemas/Move-lineRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "toDrumId": {
+            "description": "Destination drum; mutually exclusive with toStorageId",
+            "format": "uuid",
             "type": "string"
           },
           "toStorageId": {
+            "description": "Destination storage area; mutually exclusive with toDrumId",
+            "format": "uuid",
             "type": "string"
           }
         },
@@ -1288,7 +1528,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/NewAPIKey.json"
+              "/api/schemas/NewAPIKey.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1409,7 +1649,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Overview.json"
+              "/api/schemas/Overview.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1496,23 +1736,27 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Product.json"
+              "/api/schemas/Product.json"
             ],
             "format": "uri",
             "readOnly": true,
             "type": "string"
           },
           "breakLoad": {
+            "description": "Break load / minimum breaking load (MBL) in tonnes",
             "format": "double",
             "type": "number"
           },
           "canBeTurned": {
+            "description": "Whether lines of this product can be turned end-for-end to even out wear",
             "type": "boolean"
           },
           "constructionType": {
+            "description": "Rope construction, e.g. 8-strand, 12-strand, double-braid",
             "type": "string"
           },
           "defaultLength": {
+            "description": "Default line length in metres",
             "format": "double",
             "type": "number"
           },
@@ -1532,6 +1776,11 @@
             "type": "string"
           },
           "manufacturerManualRef": {
+            "description": "Reference to the manufacturer's manual/datasheet",
+            "type": "string"
+          },
+          "modelNumber": {
+            "description": "Manufacturer model/article number",
             "type": "string"
           },
           "notes": {
@@ -1541,6 +1790,7 @@
             "type": "string"
           },
           "swl": {
+            "description": "Safe working load in tonnes",
             "format": "double",
             "type": "number"
           }
@@ -1562,7 +1812,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Save-layoutRequest.json"
+              "/api/schemas/Save-layoutRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1673,7 +1923,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Test-webhookResponse.json"
+              "/api/schemas/Test-webhookResponse.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1694,7 +1944,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/TurnBody.json"
+              "/api/schemas/TurnBody.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1712,7 +1962,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Update-line-typeRequest.json"
+              "/api/schemas/Update-line-typeRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1737,7 +1987,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Update-makerRequest.json"
+              "/api/schemas/Update-makerRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1762,7 +2012,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Update-productRequest.json"
+              "/api/schemas/Update-productRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1793,6 +2043,9 @@
           "manufacturerManualRef": {
             "type": "string"
           },
+          "modelNumber": {
+            "type": "string"
+          },
           "notes": {
             "type": "string"
           },
@@ -1819,7 +2072,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Update-userRequest.json"
+              "/api/schemas/Update-userRequest.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1845,7 +2098,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/User.json"
+              "/api/schemas/User.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1890,7 +2143,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/Vessel.json"
+              "/api/schemas/Vessel.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -1918,7 +2171,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/WebhookBody.json"
+              "/api/schemas/WebhookBody.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -2001,7 +2254,7 @@
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/WebhookSubscription.json"
+              "/api/schemas/WebhookSubscription.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -2064,13 +2317,20 @@
         "additionalProperties": false,
         "properties": {
           "breakLoad": {
+            "description": "Break load in tonnes",
             "format": "double",
             "type": "number"
           },
           "driveType": {
+            "description": "Winch drive",
+            "enum": [
+              "electric",
+              "hydraulic"
+            ],
             "type": "string"
           },
           "drumCount": {
+            "description": "Number of drums on the winch",
             "format": "int64",
             "type": "integer"
           },
@@ -2090,27 +2350,53 @@
             "type": "string"
           },
           "labelAuto": {
+            "description": "Whether the label is auto-generated from position",
             "type": "boolean"
           },
           "orientation": {
+            "description": "Rotation in degrees",
+            "enum": [
+              0,
+              45,
+              -45,
+              90,
+              -90
+            ],
             "format": "int64",
             "type": "integer"
           },
           "station": {
+            "description": "Which deck the winch is on",
+            "enum": [
+              "fwd",
+              "aft"
+            ],
             "type": "string"
           },
           "swl": {
+            "description": "Safe working load in tonnes",
             "format": "double",
             "type": "number"
           },
+          "thumbnail": {
+            "type": "string"
+          },
           "worstStatus": {
+            "description": "Worst condition among the lines on this winch",
+            "enum": [
+              "Good",
+              "Monitor",
+              "Action"
+            ],
             "type": "string"
           },
           "x": {
+            "description": "Normalized horizontal position (0..1) across the deck",
             "format": "double",
             "type": "number"
           },
           "y": {
+            "description": "Normalized vertical position (0..1) down the deck",
             "format": "double",
             "type": "number"
           }
@@ -2200,12 +2486,23 @@
         ],
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "apiKey": {
+        "description": "API key issued per user. Send as `Authorization: Bearer \u003ckey\u003e`. `X-API-Key: \u003ckey\u003e` and `?api_key=\u003ckey\u003e` are also accepted.",
+        "scheme": "bearer",
+        "type": "http"
+      }
     }
   },
   "info": {
-    "description": "Fleet-wide mooring line management. Same API runs onboard (single vessel) and shore (fleet); scope is configuration.",
+    "contact": {
+      "name": "Mooring Line Management",
+      "url": "https://mooring.operationcentric.com"
+    },
+    "description": "Track mooring lines across their life: where each line sits on deck, its\nidentity and certification, side-tracking and turning, inspections, condition rollups, and\ndocument/photo evidence.\n\n**Deployment scope.** The same API runs in two scopes, set by configuration, not by the client:\n- *onboard* — one vessel; the deployment ignores any other vessel id you send and serves its own.\n- *shore* — the whole fleet; vessel id selects which vessel.\n\n**Authentication.** Every endpoint except `/health` requires an API key. Send it as\n`Authorization: Bearer \u003ckey\u003e` (preferred), `X-API-Key: \u003ckey\u003e`, or `?api_key=\u003ckey\u003e`\n(handy for file downloads). Keys are issued per user.\n\n**Condition.** Line/winch/storage condition is one of `Good`, `Monitor`, or `Action`.\n\n**Integrating an inspection provider.**\n1. Push assessments with `POST /inspections/ingest` — look the line up by `serialNumber`,\n   and pass an `externalId` so retries are idempotent.\n2. Comment on an existing inspection with `POST /inspections/{id}/feedback`.\n3. Subscribe to changes with webhooks (`/webhooks`); deliveries are HMAC-SHA256 signed.\n\n**Errors.** Failures return a JSON problem document (`status`, `title`, `detail`, and a\nfield-level `errors` array on validation problems).",
     "title": "Mooring Line Management API",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -2277,6 +2574,7 @@
     },
     "/inspections/ingest": {
       "post": {
+        "description": "The inbound integration endpoint for external inspection providers. Resolves the line by `serialNumber`, records the assessment, and updates the line's current condition. Idempotent by `externalId`: replaying the same key returns the stored inspection with `created:false`. Returns `{ inspection, created }`. Fires `inspection.logged` only on first insert.",
         "operationId": "insp-ingest",
         "requestBody": {
           "content": {
@@ -2299,7 +2597,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "404": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2307,10 +2605,30 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
-        "summary": "Ingest an inspection from the third-party API (idempotent by external_id)",
+        "summary": "Ingest an inspection from a third-party system",
         "tags": [
           "inspections"
         ]
@@ -2318,21 +2636,26 @@
     },
     "/inspections/logbook": {
       "get": {
+        "description": "Returns inspections across a vessel (newest first), each enriched with the line's name and serial. On a shore deployment, omit `vesselId` for a fleet-wide log.",
         "operationId": "insp-logbook",
         "parameters": [
           {
+            "description": "Vessel to scope to; ignored onboard (always the configured vessel)",
             "explode": false,
             "in": "query",
             "name": "vesselId",
             "schema": {
+              "description": "Vessel to scope to; ignored onboard (always the configured vessel)",
               "type": "string"
             }
           },
           {
+            "description": "Max entries to return (default 100)",
             "explode": false,
             "in": "query",
             "name": "limit",
             "schema": {
+              "description": "Max entries to return (default 100)",
               "format": "int64",
               "type": "integer"
             }
@@ -2372,8 +2695,131 @@
         ]
       }
     },
+    "/inspections/{id}/feedback": {
+      "get": {
+        "description": "Returns every feedback entry attached to an inspection, oldest first. An unknown inspection id yields an empty list.",
+        "operationId": "insp-feedback-list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InspectionFeedback"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List feedback on an inspection",
+        "tags": [
+          "inspections"
+        ]
+      },
+      "post": {
+        "description": "Records a follow-up assessment or acknowledgement on an existing inspection — the channel a third-party reviewer uses after consuming an `inspection.logged` event. Idempotent by `externalId` (replaying the same key returns the stored feedback with `created:false`). Feedback is an annotation: it does not change the line's condition. Fires the `inspection.feedback` webhook event.",
+        "operationId": "insp-feedback",
+        "parameters": [
+          {
+            "description": "The inspection being commented on",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The inspection being commented on",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InspFeedbackBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Insp-feedbackResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Attach feedback to an inspection",
+        "tags": [
+          "inspections"
+        ]
+      }
+    },
     "/line-types": {
       "get": {
+        "description": "Functional line categories (e.g. mooring tail, main line, lashing).",
         "operationId": "list-line-types",
         "responses": {
           "200": {
@@ -2502,6 +2948,7 @@
     },
     "/lines/{id}": {
       "get": {
+        "description": "Returns a line's complete record: identity, certification, specs (inherited from its product), location, side-tracking ages, and condition.",
         "operationId": "get-line",
         "parameters": [
           {
@@ -2525,7 +2972,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "404": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2533,10 +2980,30 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
-        "summary": "Get full rope record",
+        "summary": "Get the full rope record",
         "tags": [
           "lines"
         ]
@@ -2596,6 +3063,7 @@
     },
     "/lines/{id}/components": {
       "post": {
+        "description": "Registers a sub-line (such as a tail or lashing) under a parent line, sharing its vessel. Same body as register-line.",
         "operationId": "add-component",
         "parameters": [
           {
@@ -2629,7 +3097,7 @@
             },
             "description": "Created"
           },
-          "default": {
+          "404": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2637,7 +3105,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "summary": "Add a component (tail/lashing) to a line",
@@ -2696,6 +3184,7 @@
     },
     "/lines/{id}/inspections": {
       "get": {
+        "description": "Returns a line's inspections, most recent first.",
         "operationId": "insp-list",
         "parameters": [
           {
@@ -2742,6 +3231,7 @@
         ]
       },
       "post": {
+        "description": "Records a condition assessment against a line and updates the line's current condition. Use this for crew/manual entries; third-party systems should use `POST /inspections/ingest`. Fires the `inspection.logged` webhook event.",
         "operationId": "insp-log",
         "parameters": [
           {
@@ -2775,7 +3265,7 @@
             },
             "description": "Created"
           },
-          "default": {
+          "404": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2783,7 +3273,27 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "summary": "Log a manual inspection for a line",
@@ -2794,6 +3304,7 @@
     },
     "/lines/{id}/move": {
       "post": {
+        "description": "Relocates a line. Provide exactly one of `toDrumId` or `toStorageId`; sending both or neither is rejected. Moving onto an occupied drum is a conflict. Fires `line.moved`.",
         "operationId": "move-line",
         "parameters": [
           {
@@ -2827,7 +3338,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "404": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2835,7 +3346,37 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "summary": "Move a line to a drum or to storage",
@@ -2996,6 +3537,7 @@
     },
     "/makers": {
       "get": {
+        "description": "Rope manufacturers in the catalogue.",
         "operationId": "list-makers",
         "responses": {
           "200": {
@@ -3190,6 +3732,7 @@
     },
     "/products": {
       "get": {
+        "description": "Catalogue products (a maker + line type with specs). Lines are registered from these.",
         "operationId": "list-products",
         "parameters": [
           {
@@ -3284,6 +3827,7 @@
     },
     "/products/{id}": {
       "get": {
+        "description": "Returns one catalogue product with its full specs.",
         "operationId": "get-product",
         "parameters": [
           {
@@ -3307,7 +3851,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "404": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3315,10 +3859,30 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
-        "summary": "Get product",
+        "summary": "Get a product",
         "tags": [
           "catalogue"
         ]
@@ -3376,21 +3940,26 @@
     },
     "/reports/condition": {
       "get": {
+        "description": "Returns a downloadable report of every top-level line's latest condition. `format=csv` (default) or `format=pdf`. For programmatic reads prefer the JSON list endpoints.",
         "operationId": "insp-report",
         "parameters": [
           {
+            "description": "Vessel to scope to; ignored onboard",
             "explode": false,
             "in": "query",
             "name": "vesselId",
             "schema": {
+              "description": "Vessel to scope to; ignored onboard",
               "type": "string"
             }
           },
           {
+            "description": "Output format; defaults to csv",
             "explode": false,
             "in": "query",
             "name": "format",
             "schema": {
+              "description": "Output format; defaults to csv",
               "enum": [
                 "pdf",
                 "csv"
@@ -3668,6 +4237,7 @@
     },
     "/vessels": {
       "get": {
+        "description": "Returns vessels visible to this deployment. Onboard, that is the single configured vessel; shore returns the fleet.",
         "operationId": "list-vessels",
         "responses": {
           "200": {
@@ -3703,6 +4273,7 @@
         ]
       },
       "post": {
+        "description": "Registers a vessel (shore use). Onboard deployments serve a single pre-provisioned vessel.",
         "operationId": "create-vessel",
         "requestBody": {
           "content": {
@@ -3736,7 +4307,7 @@
             "description": "Error"
           }
         },
-        "summary": "Create vessel",
+        "summary": "Create a vessel",
         "tags": [
           "vessel"
         ]
@@ -3744,6 +4315,7 @@
     },
     "/vessels/{vesselId}": {
       "get": {
+        "description": "Returns one vessel's identity. Onboard, any id resolves to the configured vessel.",
         "operationId": "get-vessel",
         "parameters": [
           {
@@ -3767,7 +4339,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "404": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3775,10 +4347,30 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
-        "summary": "Get vessel",
+        "summary": "Get a vessel",
         "tags": [
           "vessel"
         ]
@@ -3786,6 +4378,7 @@
     },
     "/vessels/{vesselId}/layout": {
       "get": {
+        "description": "Returns the vessel's deck plan: winches with their drums and storage areas, each carrying the worst-case condition of the lines it holds. Winch and storage positions are normalized (x,y in 0..1) against a 1000x600 deck. Pass `?thumbnails=true` to also receive, per winch, a base64 SVG `thumbnail` of that winch highlighted on the deck.",
         "operationId": "get-layout",
         "parameters": [
           {
@@ -3795,6 +4388,16 @@
             "schema": {
               "format": "uuid",
               "type": "string"
+            }
+          },
+          {
+            "description": "When true, each winch carries a base64 SVG data-URI thumbnail of itself highlighted on the deck",
+            "explode": false,
+            "in": "query",
+            "name": "thumbnails",
+            "schema": {
+              "description": "When true, each winch carries a base64 SVG data-URI thumbnail of itself highlighted on the deck",
+              "type": "boolean"
             }
           }
         ],
@@ -3826,6 +4429,7 @@
         ]
       },
       "put": {
+        "description": "Replaces the vessel's winches and storage areas in one call (the staged-edit save from the deck editor). Positions are normalized (x,y in 0..1). Fires `layout.updated`.",
         "operationId": "save-layout",
         "parameters": [
           {
@@ -3870,7 +4474,7 @@
             "description": "Error"
           }
         },
-        "summary": "Replace deck layout (staged edit save)",
+        "summary": "Replace the deck layout",
         "tags": [
           "vessel"
         ]
@@ -3878,6 +4482,7 @@
     },
     "/vessels/{vesselId}/lines": {
       "get": {
+        "description": "Returns the vessel's top-level mooring lines as compact rows, with `items` and a `total` count for paging. Combine filters freely; `q` matches name/serial/tag.",
         "operationId": "list-lines",
         "parameters": [
           {
@@ -3890,18 +4495,23 @@
             }
           },
           {
+            "description": "Filter to one line type (see GET /line-types)",
             "explode": false,
             "in": "query",
             "name": "lineTypeId",
             "schema": {
+              "description": "Filter to one line type (see GET /line-types)",
+              "format": "uuid",
               "type": "string"
             }
           },
           {
+            "description": "Filter by current condition",
             "explode": false,
             "in": "query",
             "name": "condition",
             "schema": {
+              "description": "Filter by current condition",
               "enum": [
                 "Good",
                 "Monitor",
@@ -3911,10 +4521,12 @@
             }
           },
           {
+            "description": "installed = on a drum; spare = not currently rigged",
             "explode": false,
             "in": "query",
             "name": "placement",
             "schema": {
+              "description": "installed = on a drum; spare = not currently rigged",
               "enum": [
                 "installed",
                 "spare"
@@ -3923,27 +4535,33 @@
             }
           },
           {
+            "description": "Free-text search over name, serial, and tag",
             "explode": false,
             "in": "query",
             "name": "q",
             "schema": {
+              "description": "Free-text search over name, serial, and tag",
               "type": "string"
             }
           },
           {
+            "description": "Page size (default server value)",
             "explode": false,
             "in": "query",
             "name": "limit",
             "schema": {
+              "description": "Page size (default server value)",
               "format": "int64",
               "type": "integer"
             }
           },
           {
+            "description": "Rows to skip for paging",
             "explode": false,
             "in": "query",
             "name": "offset",
             "schema": {
+              "description": "Rows to skip for paging",
               "format": "int64",
               "type": "integer"
             }
@@ -3977,6 +4595,7 @@
         ]
       },
       "post": {
+        "description": "Creates a mooring line from a catalogue product. `serialNumber` must be unique on the vessel. Use `lifecycleStatus=ordered` to pre-register a line before it arrives. Fires `line.registered`.",
         "operationId": "register-line",
         "parameters": [
           {
@@ -4010,7 +4629,7 @@
             },
             "description": "Created"
           },
-          "default": {
+          "409": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4018,10 +4637,30 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
-        "summary": "Register a mooring line (supports lifecycle_status=ordered)",
+        "summary": "Register a mooring line",
         "tags": [
           "lines"
         ]
@@ -4071,6 +4710,7 @@
     },
     "/webhook-events": {
       "get": {
+        "description": "Returns every event a subscription can deliver, with the `{{variables}}` available to its header and payload templates. Deliveries are POSTed as a JSON envelope (`event`, `eventId`, `vesselId`, `aggregate`, `aggregateId`, `createdAt`, `data`) and signed with `X-Signature-256: sha256=\u003chmac\u003e` when a secret is set.",
         "operationId": "list-webhook-events",
         "responses": {
           "200": {
@@ -4153,6 +4793,7 @@
         ]
       },
       "post": {
+        "description": "Subscribes a URL to events. Leave `events` empty to receive all. Set a `secret` to get HMAC-SHA256 signatures. Onboard, the subscription is scoped to the configured vessel.",
         "operationId": "create-webhook",
         "parameters": [
           {
@@ -4196,7 +4837,7 @@
             "description": "Error"
           }
         },
-        "summary": "Create webhook subscription",
+        "summary": "Create a webhook subscription",
         "tags": [
           "webhooks"
         ]
@@ -4329,6 +4970,7 @@
     },
     "/webhooks/{id}/test": {
       "post": {
+        "description": "Delivers a synthetic `webhook.test` event to the subscription's URL so you can verify reachability, headers, and signature handling before relying on live events.",
         "operationId": "test-webhook",
         "parameters": [
           {
@@ -4352,7 +4994,7 @@
             },
             "description": "OK"
           },
-          "default": {
+          "404": {
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4360,7 +5002,37 @@
                 }
               }
             },
-            "description": "Error"
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           }
         },
         "summary": "Send a test delivery to a webhook",
@@ -4369,5 +5041,20 @@
         ]
       }
     }
-  }
+  },
+  "security": [
+    {
+      "apiKey": []
+    }
+  ],
+  "servers": [
+    {
+      "description": "Same-origin (the web app proxies here)",
+      "url": "/api"
+    },
+    {
+      "description": "Hosted deployment",
+      "url": "https://mooring.operationcentric.com/api"
+    }
+  ]
 }

@@ -83,7 +83,7 @@ func (s *Store) UpdateLineType(ctx context.Context, id, name, desc string) (Line
 
 const productSelect = `
 SELECT p.id, p.maker_id, m.name, p.line_type_id, lt.name,
-       p.product_name, COALESCE(p.construction_type,''), p.default_length, p.swl, p.break_load,
+       p.product_name, COALESCE(p.model_number,''), COALESCE(p.construction_type,''), p.default_length, p.swl, p.break_load,
        p.can_be_turned, COALESCE(p.manufacturer_manual_ref,''), COALESCE(p.notes,'')
 FROM product p
 JOIN maker m ON m.id = p.maker_id
@@ -92,7 +92,7 @@ JOIN line_type lt ON lt.id = p.line_type_id`
 func scanProduct(row interface{ Scan(...any) error }) (Product, error) {
 	var p Product
 	err := row.Scan(&p.ID, &p.MakerID, &p.MakerName, &p.LineTypeID, &p.LineTypeName,
-		&p.ProductName, &p.ConstructionType, &p.DefaultLength, &p.SWL, &p.BreakLoad,
+		&p.ProductName, &p.ModelNumber, &p.ConstructionType, &p.DefaultLength, &p.SWL, &p.BreakLoad,
 		&p.CanBeTurned, &p.ManufacturerManualRef, &p.Notes)
 	return p, err
 }
@@ -123,8 +123,8 @@ func (s *Store) GetProduct(ctx context.Context, id string) (Product, error) {
 }
 
 type NewProductInput struct {
-	MakerID, LineTypeID, ProductName, ConstructionType, ManualRef, Notes string
-	DefaultLength                                                        *float64
+	MakerID, LineTypeID, ProductName, ModelNumber, ConstructionType, ManualRef, Notes string
+	DefaultLength                                                                      *float64
 	SWL                                                                  *float64
 	BreakLoad                                                            *float64
 	CanBeTurned                                                          bool
@@ -133,10 +133,10 @@ type NewProductInput struct {
 func (s *Store) CreateProduct(ctx context.Context, in NewProductInput) (Product, error) {
 	id := newID()
 	_, err := s.Pool.Exec(ctx, `
-INSERT INTO product (id, maker_id, line_type_id, product_name, construction_type,
+INSERT INTO product (id, maker_id, line_type_id, product_name, model_number, construction_type,
                      default_length, swl, break_load, can_be_turned, manufacturer_manual_ref, notes)
-VALUES ($1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,NULLIF($10,''),NULLIF($11,''))`,
-		id, in.MakerID, in.LineTypeID, in.ProductName, in.ConstructionType,
+VALUES ($1,$2,$3,$4,NULLIF($5,''),NULLIF($6,''),$7,$8,$9,$10,NULLIF($11,''),NULLIF($12,''))`,
+		id, in.MakerID, in.LineTypeID, in.ProductName, in.ModelNumber, in.ConstructionType,
 		in.DefaultLength, in.SWL, in.BreakLoad, in.CanBeTurned, in.ManualRef, in.Notes)
 	if err != nil {
 		return Product{}, err
@@ -146,11 +146,11 @@ VALUES ($1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,NULLIF($10,''),NULLIF($11,''))`,
 
 func (s *Store) UpdateProduct(ctx context.Context, id string, in NewProductInput) (Product, error) {
 	tag, err := s.Pool.Exec(ctx, `
-UPDATE product SET maker_id=$2, line_type_id=$3, product_name=$4, construction_type=NULLIF($5,''),
-                   default_length=$6, swl=$7, break_load=$8, can_be_turned=$9,
-                   manufacturer_manual_ref=NULLIF($10,''), notes=NULLIF($11,'')
+UPDATE product SET maker_id=$2, line_type_id=$3, product_name=$4, model_number=NULLIF($5,''),
+                   construction_type=NULLIF($6,''), default_length=$7, swl=$8, break_load=$9,
+                   can_be_turned=$10, manufacturer_manual_ref=NULLIF($11,''), notes=NULLIF($12,'')
 WHERE id=$1`,
-		id, in.MakerID, in.LineTypeID, in.ProductName, in.ConstructionType,
+		id, in.MakerID, in.LineTypeID, in.ProductName, in.ModelNumber, in.ConstructionType,
 		in.DefaultLength, in.SWL, in.BreakLoad, in.CanBeTurned, in.ManualRef, in.Notes)
 	if err != nil {
 		return Product{}, err

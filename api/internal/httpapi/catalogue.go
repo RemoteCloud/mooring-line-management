@@ -14,7 +14,7 @@ func registerCatalogue(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "list-makers", Method: http.MethodGet, Path: "/makers",
-		Summary: "List makers", Tags: tag,
+		Summary: "List makers", Description: "Rope manufacturers in the catalogue.", Tags: tag,
 	}, func(ctx context.Context, _ *struct{}) (*struct{ Body []store.Maker }, error) {
 		m, err := s.Store.ListMakers(ctx)
 		if err != nil {
@@ -58,7 +58,7 @@ func registerCatalogue(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "list-line-types", Method: http.MethodGet, Path: "/line-types",
-		Summary: "List line types", Tags: tag,
+		Summary: "List line types", Description: "Functional line categories (e.g. mooring tail, main line, lashing).", Tags: tag,
 	}, func(ctx context.Context, _ *struct{}) (*struct{ Body []store.LineType }, error) {
 		t, err := s.Store.ListLineTypes(ctx)
 		if err != nil {
@@ -102,7 +102,7 @@ func registerCatalogue(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "list-products", Method: http.MethodGet, Path: "/products",
-		Summary: "List products", Tags: tag,
+		Summary: "List products", Description: "Catalogue products (a maker + line type with specs). Lines are registered from these.", Tags: tag,
 	}, func(ctx context.Context, in *struct {
 		MakerID    string `query:"makerId"`
 		LineTypeID string `query:"lineTypeId"`
@@ -116,7 +116,7 @@ func registerCatalogue(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "get-product", Method: http.MethodGet, Path: "/products/{id}",
-		Summary: "Get product", Tags: tag,
+		Summary: "Get a product", Description: "Returns one catalogue product with its full specs.", Tags: tag, Errors: []int{http.StatusNotFound},
 	}, func(ctx context.Context, in *struct {
 		ID string `path:"id" format:"uuid"`
 	}) (*struct{ Body store.Product }, error) {
@@ -135,6 +135,7 @@ func registerCatalogue(api huma.API, s *Server) {
 			MakerID          string   `json:"makerId" format:"uuid"`
 			LineTypeID       string   `json:"lineTypeId" format:"uuid"`
 			ProductName      string   `json:"productName" minLength:"1"`
+			ModelNumber      string   `json:"modelNumber,omitempty"`
 			ConstructionType string   `json:"constructionType,omitempty"`
 			DefaultLength    *float64 `json:"defaultLength,omitempty"`
 			SWL              *float64 `json:"swl,omitempty"`
@@ -146,7 +147,8 @@ func registerCatalogue(api huma.API, s *Server) {
 	}) (*struct{ Body store.Product }, error) {
 		p, err := s.Store.CreateProduct(ctx, store.NewProductInput{
 			MakerID: in.Body.MakerID, LineTypeID: in.Body.LineTypeID,
-			ProductName: in.Body.ProductName, ConstructionType: in.Body.ConstructionType,
+			ProductName: in.Body.ProductName, ModelNumber: in.Body.ModelNumber,
+			ConstructionType: in.Body.ConstructionType,
 			DefaultLength: in.Body.DefaultLength, SWL: in.Body.SWL, BreakLoad: in.Body.BreakLoad,
 			CanBeTurned: in.Body.CanBeTurned,
 			ManualRef: in.Body.ManualRef, Notes: in.Body.Notes,
@@ -166,6 +168,7 @@ func registerCatalogue(api huma.API, s *Server) {
 			MakerID          string   `json:"makerId" format:"uuid"`
 			LineTypeID       string   `json:"lineTypeId" format:"uuid"`
 			ProductName      string   `json:"productName" minLength:"1"`
+			ModelNumber      string   `json:"modelNumber,omitempty"`
 			ConstructionType string   `json:"constructionType,omitempty"`
 			DefaultLength    *float64 `json:"defaultLength,omitempty"`
 			SWL              *float64 `json:"swl,omitempty"`
@@ -177,7 +180,8 @@ func registerCatalogue(api huma.API, s *Server) {
 	}) (*struct{ Body store.Product }, error) {
 		p, err := s.Store.UpdateProduct(ctx, in.ID, store.NewProductInput{
 			MakerID: in.Body.MakerID, LineTypeID: in.Body.LineTypeID,
-			ProductName: in.Body.ProductName, ConstructionType: in.Body.ConstructionType,
+			ProductName: in.Body.ProductName, ModelNumber: in.Body.ModelNumber,
+			ConstructionType: in.Body.ConstructionType,
 			DefaultLength: in.Body.DefaultLength, SWL: in.Body.SWL, BreakLoad: in.Body.BreakLoad,
 			CanBeTurned: in.Body.CanBeTurned,
 			ManualRef: in.Body.ManualRef, Notes: in.Body.Notes,

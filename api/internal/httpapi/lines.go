@@ -15,15 +15,18 @@ func registerLines(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "list-lines", Method: http.MethodGet, Path: "/vessels/{vesselId}/lines",
-		Summary: "List mooring lines (filterable, searchable, paginated)", Tags: tag,
+		Summary: "List mooring lines (filterable, searchable, paginated)",
+		Description: "Returns the vessel's top-level mooring lines as compact rows, with `items` and a `total` " +
+			"count for paging. Combine filters freely; `q` matches name/serial/tag.",
+		Tags: tag,
 	}, func(ctx context.Context, in *struct {
 		VesselID   string `path:"vesselId" format:"uuid"`
-		LineTypeID string `query:"lineTypeId"`
-		Condition  string `query:"condition" enum:"Good,Monitor,Action"`
-		Placement  string `query:"placement" enum:"installed,spare"`
-		Q          string `query:"q"`
-		Limit      int    `query:"limit"`
-		Offset     int    `query:"offset"`
+		LineTypeID string `query:"lineTypeId" format:"uuid" doc:"Filter to one line type (see GET /line-types)"`
+		Condition  string `query:"condition" enum:"Good,Monitor,Action" doc:"Filter by current condition"`
+		Placement  string `query:"placement" enum:"installed,spare" doc:"installed = on a drum; spare = not currently rigged"`
+		Q          string `query:"q" doc:"Free-text search over name, serial, and tag"`
+		Limit      int    `query:"limit" doc:"Page size (default server value)"`
+		Offset     int    `query:"offset" doc:"Rows to skip for paging"`
 	}) (*struct {
 		Body struct {
 			Items []store.LineRow `json:"items"`
@@ -50,8 +53,12 @@ func registerLines(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "register-line", Method: http.MethodPost, Path: "/vessels/{vesselId}/lines",
-		Summary: "Register a mooring line (supports lifecycle_status=ordered)", Tags: tag,
+		Summary: "Register a mooring line",
+		Description: "Creates a mooring line from a catalogue product. `serialNumber` must be unique on the vessel. " +
+			"Use `lifecycleStatus=ordered` to pre-register a line before it arrives. Fires `line.registered`.",
+		Tags:          tag,
 		DefaultStatus: http.StatusCreated,
+		Errors:        []int{http.StatusUnprocessableEntity, http.StatusConflict},
 	}, func(ctx context.Context, in *struct {
 		VesselID string `path:"vesselId" format:"uuid"`
 		Body     lineBody
@@ -65,7 +72,10 @@ func registerLines(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "get-line", Method: http.MethodGet, Path: "/lines/{id}",
-		Summary: "Get full rope record", Tags: tag,
+		Summary:     "Get the full rope record",
+		Description: "Returns a line's complete record: identity, certification, specs (inherited from its product), location, side-tracking ages, and condition.",
+		Tags:        tag,
+		Errors:      []int{http.StatusNotFound},
 	}, func(ctx context.Context, in *struct {
 		ID string `path:"id" format:"uuid"`
 	}) (*struct{ Body store.Line }, error) {
@@ -78,12 +88,16 @@ func registerLines(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "move-line", Method: http.MethodPost, Path: "/lines/{id}/move",
-		Summary: "Move a line to a drum or to storage", Tags: tag,
+		Summary: "Move a line to a drum or to storage",
+		Description: "Relocates a line. Provide exactly one of `toDrumId` or `toStorageId`; sending both or neither " +
+			"is rejected. Moving onto an occupied drum is a conflict. Fires `line.moved`.",
+		Tags:   tag,
+		Errors: []int{http.StatusUnprocessableEntity, http.StatusConflict, http.StatusNotFound},
 	}, func(ctx context.Context, in *struct {
 		ID   string `path:"id" format:"uuid"`
 		Body struct {
-			ToDrumID    string `json:"toDrumId,omitempty"`
-			ToStorageID string `json:"toStorageId,omitempty"`
+			ToDrumID    string `json:"toDrumId,omitempty" format:"uuid" doc:"Destination drum; mutually exclusive with toStorageId"`
+			ToStorageID string `json:"toStorageId,omitempty" format:"uuid" doc:"Destination storage area; mutually exclusive with toDrumId"`
 		}
 	}) (*struct{ Body store.Line }, error) {
 		l, err := s.Store.MoveLine(ctx, in.ID, in.Body.ToDrumID, in.Body.ToStorageID)
@@ -95,8 +109,12 @@ func registerLines(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "add-component", Method: http.MethodPost, Path: "/lines/{id}/components",
-		Summary: "Add a component (tail/lashing) to a line", Tags: tag,
+		Summary: "Add a component (tail/lashing) to a line",
+		Description: "Registers a sub-line (such as a tail or lashing) under a parent line, sharing its vessel. " +
+			"Same body as register-line.",
+		Tags:          tag,
 		DefaultStatus: http.StatusCreated,
+		Errors:        []int{http.StatusUnprocessableEntity, http.StatusNotFound},
 	}, func(ctx context.Context, in *struct {
 		ID   string `path:"id" format:"uuid"`
 		Body lineBody
@@ -114,16 +132,16 @@ func registerLines(api huma.API, s *Server) {
 }
 
 type lineBody struct {
-	ProductID         string   `json:"productId" format:"uuid"`
-	Name              string   `json:"name" minLength:"1"`
-	SerialNumber      string   `json:"serialNumber" minLength:"1"`
-	TagNumber         string   `json:"tagNumber,omitempty"`
-	CertificateNumber string   `json:"certificateNumber,omitempty"`
-	LifecycleStatus   string   `json:"lifecycleStatus,omitempty" enum:"ordered,active,spare,retired"`
-	Length            *float64 `json:"length,omitempty"`
+	ProductID         string   `json:"productId" format:"uuid" doc:"Catalogue product this line is built from (see GET /products)"`
+	Name              string   `json:"name" minLength:"1" doc:"Operational name/position" example:"Fwd Spring 1"`
+	SerialNumber      string   `json:"serialNumber" minLength:"1" doc:"Manufacturer serial; unique per vessel" example:"NCL-LUNA-0142"`
+	TagNumber         string   `json:"tagNumber,omitempty" doc:"Physical asset tag, if any"`
+	CertificateNumber string   `json:"certificateNumber,omitempty" doc:"Certificate reference"`
+	LifecycleStatus   string   `json:"lifecycleStatus,omitempty" enum:"ordered,active,spare,retired" doc:"ordered = pre-registered before arrival; active = in service; spare = held; retired = withdrawn"`
+	Length            *float64 `json:"length,omitempty" doc:"Length in metres; defaults from the product"`
 	ManufactureDate   string   `json:"manufactureDate,omitempty" format:"date"`
 	InstallationDate  string   `json:"installationDate,omitempty" format:"date"`
-	CurrentSide       string   `json:"currentSide,omitempty" enum:"A,B,n/a"`
+	CurrentSide       string   `json:"currentSide,omitempty" enum:"A,B,n/a" doc:"Which end is rigged for turnable lines; n/a if not turnable"`
 }
 
 func (b lineBody) toInput() store.NewLineInput {

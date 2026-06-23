@@ -13,11 +13,11 @@ type Inspection struct {
 	ID              string    `json:"id"`
 	LineID          string    `json:"lineId"`
 	VesselID        string    `json:"vesselId"`
-	InspectedAt     time.Time `json:"inspectedAt"`
-	InspectedBy     string    `json:"inspectedBy,omitempty"`
-	Source          string    `json:"source"`
-	ExternalID      string    `json:"externalId,omitempty"`
-	ConditionStatus string    `json:"conditionStatus"`
+	InspectedAt     time.Time `json:"inspectedAt" doc:"When the inspection was performed"`
+	InspectedBy     string    `json:"inspectedBy,omitempty" doc:"Person or system that performed it"`
+	Source          string    `json:"source" doc:"How it was recorded" enum:"manual,api"`
+	ExternalID      string    `json:"externalId,omitempty" doc:"Caller-supplied idempotency key (api source only)"`
+	ConditionStatus string    `json:"conditionStatus" doc:"Assessed condition" enum:"Good,Monitor,Action"`
 	Notes           string    `json:"notes,omitempty"`
 	CreatedAt       time.Time `json:"createdAt"`
 }
@@ -36,6 +36,30 @@ type InspInput struct {
 	InspectedBy     string
 	Notes           string
 	InspectedAt     *time.Time
+}
+
+// InspectionFeedback is a follow-up assessment or acknowledgement attached to an
+// existing inspection, typically by a third-party system that consumed it.
+type InspectionFeedback struct {
+	ID              string    `json:"id"`
+	InspectionID    string    `json:"inspectionId"`
+	ExternalID      string    `json:"externalId,omitempty" doc:"Caller-supplied idempotency key; a repeat with the same value is ignored"`
+	Source          string    `json:"source" doc:"Where the feedback came from" enum:"api,manual"`
+	Author          string    `json:"author,omitempty" doc:"Person or system that gave the feedback"`
+	Status          string    `json:"status" doc:"Feedback disposition" enum:"acknowledged,disputed,resolved,comment"`
+	ConditionStatus string    `json:"conditionStatus,omitempty" doc:"Optional condition the reviewer suggests" enum:"Good,Monitor,Action"`
+	Notes           string    `json:"notes,omitempty"`
+	CreatedAt       time.Time `json:"createdAt"`
+}
+
+// FeedbackInput carries the fields for creating feedback. CreatedAt is optional (defaults to now).
+type FeedbackInput struct {
+	ExternalID      string
+	Author          string
+	Status          string
+	ConditionStatus string
+	Notes           string
+	CreatedAt       *time.Time
 }
 
 // InspReportRow is one line's latest condition for the condition report.
@@ -164,6 +188,95 @@ RETURNING id`,
 		return Inspection{}, false, err
 	}
 	return insp, created, nil
+}
+
+const feedbackSelect = `
+SELECT id, inspection_id, COALESCE(external_id,''), source, COALESCE(author,''),
+       status, COALESCE(condition_status,''), COALESCE(notes,''), created_at
+FROM inspection_feedback`
+
+func feedbackScan(row pgx.Row) (InspectionFeedback, error) {
+	var f InspectionFeedback
+	err := row.Scan(&f.ID, &f.InspectionID, &f.ExternalID, &f.Source, &f.Author,
+		&f.Status, &f.ConditionStatus, &f.Notes, &f.CreatedAt)
+	return f, err
+}
+
+// CreateFeedback idempotently attaches feedback to an existing inspection, keyed by
+// external_id. Returns created=false (and the existing row) on a duplicate external_id.
+// An inspection that does not exist surfaces pgx.ErrNoRows for a 404.
+func (s *Store) CreateFeedback(ctx context.Context, inspectionID string, in FeedbackInput) (InspectionFeedback, bool, error) {
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return InspectionFeedback{}, false, err
+	}
+	defer tx.Rollback(ctx)
+
+	var vesselID string
+	if err := tx.QueryRow(ctx, `SELECT vessel_id FROM inspection WHERE id=$1`, inspectionID).Scan(&vesselID); err != nil {
+		// pgx.ErrNoRows propagates so the handler returns 404.
+		return InspectionFeedback{}, false, err
+	}
+
+	id := newID()
+	var newRowID string
+	err = tx.QueryRow(ctx, `
+INSERT INTO inspection_feedback (id, inspection_id, external_id, source, author, status, condition_status, notes, created_at)
+VALUES ($1,$2,$3,'api',$4,$5,$6,$7,COALESCE($8, now()))
+ON CONFLICT (external_id) WHERE external_id IS NOT NULL DO NOTHING
+RETURNING id`,
+		id, inspectionID, nullStr(in.ExternalID), nullStr(in.Author), in.Status,
+		nullStr(in.ConditionStatus), nullStr(in.Notes), in.CreatedAt).Scan(&newRowID)
+
+	created := false
+	switch {
+	case err == nil:
+		created = true
+	case errors.Is(err, pgx.ErrNoRows):
+		// Duplicate external_id — ON CONFLICT DO NOTHING returned no row.
+		created = false
+	default:
+		return InspectionFeedback{}, false, mapPgError(err)
+	}
+
+	if created {
+		if err := writeOutbox(ctx, tx, vesselID, "inspection", newRowID, "inspection.feedback",
+			map[string]any{"id": newRowID, "inspectionId": inspectionID, "status": in.Status}); err != nil {
+			return InspectionFeedback{}, false, err
+		}
+	}
+
+	var f InspectionFeedback
+	if created {
+		f, err = feedbackScan(tx.QueryRow(ctx, feedbackSelect+` WHERE id=$1`, newRowID))
+	} else {
+		f, err = feedbackScan(tx.QueryRow(ctx, feedbackSelect+` WHERE external_id=$1`, in.ExternalID))
+	}
+	if err != nil {
+		return InspectionFeedback{}, false, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return InspectionFeedback{}, false, err
+	}
+	return f, created, nil
+}
+
+// ListFeedback returns the feedback attached to an inspection, oldest first.
+func (s *Store) ListFeedback(ctx context.Context, inspectionID string) ([]InspectionFeedback, error) {
+	rows, err := s.Pool.Query(ctx, feedbackSelect+` WHERE inspection_id=$1 ORDER BY created_at`, inspectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []InspectionFeedback{}
+	for rows.Next() {
+		f, err := feedbackScan(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, f)
+	}
+	return out, rows.Err()
 }
 
 // ListInspections returns a line's inspections, most recent first.

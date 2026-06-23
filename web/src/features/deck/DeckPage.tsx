@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useVessel } from "../../app/VesselContext";
 import { useVesselLayout, useLines, useSaveLayout, type Layout, type Winch, type Storage } from "../../api/hooks";
 import { WinchSymbol, StorageSymbol, Hull, VB_W, VB_H } from "./symbols";
+import { WinchPanel, StoragePanel } from "./WinchPanel";
 import { StatusDot } from "../../components/ui";
 
 type Station = "fwd" | "aft";
@@ -10,9 +11,50 @@ const ORIENTATIONS = [0, 45, -45, 90, -90];
 
 const clone = (l: Layout): Layout => JSON.parse(JSON.stringify(l));
 
+// A new, unsaved symbol carries a "tmp:" id so its key stays stable while we
+// relabel it; doSave strips the prefix back to undefined for the API.
+// crypto.randomUUID is unavailable in insecure contexts (http over a LAN IP,
+// which is exactly how onboard tablets reach the PWA), so fall back.
+let tmpSeq = 0;
+const tmpID = () => {
+  const rand = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${++tmpSeq}`;
+  return "tmp:" + rand;
+};
+const isTmp = (id: string) => id.startsWith("tmp:");
+
+// Deck side from the normalized x: the map is a top-down plan with the bow up,
+// so port is to the left and starboard to the right. A center band covers
+// keel-line winches.
+type Side = "P" | "S" | "C";
+function sideOf(x: number): Side {
+  if (x < 0.45) return "P";
+  if (x > 0.55) return "S";
+  return "C";
+}
+const SIDE_NAME: Record<Side, string> = { P: "Port", S: "Starboard", C: "Center" };
+const STATION_NAME: Record<Station, string> = { fwd: "Forward", aft: "Aft" };
+
+// positionLabel describes a winch's derived placement, e.g. "Forward · Starboard".
+export function positionLabel(station: string, x: number): string {
+  return `${STATION_NAME[station as Station] ?? station} · ${SIDE_NAME[sideOf(x)]}`;
+}
+
+// renumberAuto rewrites the label of every auto-named winch to
+// <STATION>-<SIDE><n>, numbered per station+side in array order. Hand-named
+// winches (labelAuto=false) keep their label and are skipped.
+function renumberAuto(winches: Winch[]) {
+  const counters: Record<string, number> = {};
+  for (const w of winches) {
+    if (!w.labelAuto) continue;
+    const side = sideOf(w.x);
+    const k = w.station + side;
+    counters[k] = (counters[k] ?? 0) + 1;
+    w.label = `${w.station.toUpperCase()}-${side}${counters[k]}`;
+  }
+}
+
 export function DeckPage() {
   const { vesselId } = useVessel();
-  const navigate = useNavigate();
   const { data: layout } = useVesselLayout(vesselId);
   const { data: lines } = useLines(vesselId, {});
   const save = useSaveLayout(vesselId ?? "");
@@ -25,10 +67,46 @@ export function DeckPage() {
 
   const active = edit ? draft : layout;
   const winches = (active?.winches ?? []).filter((w) => w.station === station);
-  const storage = (active?.storage ?? []).filter((s) => s.station === station);
+  // On-map storage is drawn on the SVG for the current station; off-map "areas" are
+  // vessel-wide text locations listed under the map regardless of station.
+  const storage = (active?.storage ?? []).filter((s) => s.onMap && s.station === station);
+  const areas = (active?.storage ?? []).filter((s) => !s.onMap);
 
-  // selected entity, tracked by a stable key so new (id="") items can be selected
   const [selKey, setSelKey] = useState<string | null>(null);
+  // Drum picked in the side panel; glows green on the selected winch's symbol. Only
+  // meaningful paired with selKey, so it clears whenever the selection/station/mode changes.
+  const [selDrumIdx, setSelDrumIdx] = useState<number | null>(null);
+  useEffect(() => setSelDrumIdx(null), [selKey, station, edit]);
+
+  // A line can be deep-linked from its rope record (/deck?line=<id>); resolve where
+  // it physically sits so we can jump to that station and glow the exact drum/store.
+  const [sp] = useSearchParams();
+  const focusLineId = sp.get("line");
+  const focus = useMemo(() => {
+    if (!focusLineId || !layout) return null;
+    const line = lines?.items.find((l) => l.id === focusLineId);
+    if (!line) return null;
+    if (line.currentDrumId) {
+      for (const w of layout.winches) {
+        const d = w.drums.find((d) => d.id === line.currentDrumId);
+        if (d) return { kind: "winch" as const, id: w.id, drumIdx: d.idx, station: w.station as Station };
+      }
+    }
+    if (line.currentStorageId) {
+      const s = layout.storage.find((s) => s.id === line.currentStorageId);
+      // Off-map areas are vessel-wide, so don't force a station for them.
+      if (s) return { kind: "storage" as const, id: s.id, station: s.onMap ? (s.station as Station) : undefined };
+    }
+    return null;
+  }, [focusLineId, layout, lines]);
+
+  // When a line is focused, jump to its station and select it (view mode only).
+  useEffect(() => {
+    if (!focus || edit) return;
+    if (focus.station) setStation(focus.station);
+    setSelKey(focus.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
 
   const enterEdit = () => { if (layout) { setDraft(clone(layout)); setEdit(true); setSelKey(null); } };
   const cancelEdit = () => { setEdit(false); setDraft(null); setSelKey(null); };
@@ -37,11 +115,13 @@ export function DeckPage() {
     if (!draft) return;
     await save.mutateAsync({
       winches: draft.winches.map((w) => ({
-        id: w.id || undefined, label: w.label, station: w.station,
-        x: w.x, y: w.y, orientation: w.orientation, drum_count: w.drum_count,
+        id: isTmp(w.id) ? undefined : w.id, label: w.label, station: w.station,
+        x: w.x, y: w.y, orientation: w.orientation, drumCount: w.drumCount,
+        driveType: w.driveType, labelAuto: w.labelAuto, swl: w.swl, breakLoad: w.breakLoad,
       })),
       storage: draft.storage.map((s) => ({
-        id: s.id || undefined, label: s.label, station: s.station, x: s.x, y: s.y,
+        id: isTmp(s.id) ? undefined : s.id, label: s.label, station: s.onMap ? s.station : "",
+        onMap: s.onMap, x: s.x, y: s.y,
       })),
     });
     cancelEdit();
@@ -62,44 +142,74 @@ export function DeckPage() {
       if (!prev) return prev;
       const next = clone(prev);
       const arr = d.kind === "winch" ? next.winches : next.storage;
-      const item = arr.find((i) => keyOf(i) === d.id);
+      const item = arr.find((i) => i.id === d.id);
       if (item) { item.x = x; item.y = y; }
+      // dragging across the centerline can change a winch's port/starboard side,
+      // so re-derive auto names live.
+      if (d.kind === "winch") renumberAuto(next.winches);
       return next;
     });
   };
 
-  const keyOf = (i: Winch | Storage) => i.id || (i as Winch).label + ":" + i.station;
+  const keyOf = (i: Winch | Storage) => i.id;
 
-  const addWinch = () => setDraft((p) => p && ({ ...clone(p), winches: [...p.winches, {
-    id: "", label: "New winch", station, x: 0.5, y: 0.5, orientation: 0, drum_count: 2, drums: [], worst_status: "",
-  }] }));
-  const addStorage = () => setDraft((p) => p && ({ ...clone(p), storage: [...p.storage, {
-    id: "", label: "New store", station, x: 0.5, y: 0.5, line_count: 0, worst_status: "",
-  }] }));
-
-  const updateWinch = (key: string, patch: Partial<Winch>) =>
-    setDraft((p) => { if (!p) return p; const n = clone(p); const w = n.winches.find((w) => keyOf(w) === key); if (w) Object.assign(w, patch); return n; });
-  const updateStorage = (key: string, patch: Partial<Storage>) =>
-    setDraft((p) => { if (!p) return p; const n = clone(p); const s = n.storage.find((s) => keyOf(s) === key); if (s) Object.assign(s, patch); return n; });
-  const removeSel = () => setDraft((p) => {
-    if (!p || !selKey) return p; const n = clone(p);
-    n.winches = n.winches.filter((w) => keyOf(w) !== selKey);
-    n.storage = n.storage.filter((s) => keyOf(s) !== selKey);
+  const addWinch = () => setDraft((p) => {
+    if (!p) return p;
+    const n = clone(p);
+    const w: Winch = {
+      id: tmpID(), label: "", station, x: 0.5, y: 0.5, orientation: 0,
+      drumCount: 2, driveType: "electric", labelAuto: true, drums: [], worstStatus: "",
+    };
+    n.winches.push(w);
+    renumberAuto(n.winches);
+    setSelKey(w.id);
+    return n;
+  });
+  const addStorage = () => setDraft((p) => {
+    if (!p) return p;
+    const n = clone(p);
+    const s: Storage = { id: tmpID(), label: "New store", station, onMap: true, x: 0.5, y: 0.5, lineCount: 0, worstStatus: "" };
+    n.storage.push(s);
+    setSelKey(s.id);
+    return n;
+  });
+  // An off-map area is a text-only storage location (no deck position, no station).
+  const addStorageArea = () => setDraft((p) => {
+    if (!p) return p;
+    const n = clone(p);
+    const s: Storage = { id: tmpID(), label: "New area", station: "", onMap: false, x: 0.5, y: 0.5, lineCount: 0, worstStatus: "" };
+    n.storage.push(s);
+    setSelKey(s.id);
     return n;
   });
 
-  const editWinch = draft?.winches.find((w) => keyOf(w) === selKey);
-  const editStorage = draft?.storage.find((s) => keyOf(s) === selKey);
+  const updateWinch = (key: string, patch: Partial<Winch>) =>
+    setDraft((p) => {
+      if (!p) return p;
+      const n = clone(p);
+      const w = n.winches.find((w) => w.id === key);
+      if (w) {
+        Object.assign(w, patch);
+        // station/side or auto-toggle changes can shift the derived numbering
+        if ("station" in patch || "labelAuto" in patch) renumberAuto(n.winches);
+      }
+      return n;
+    });
+  const updateStorage = (key: string, patch: Partial<Storage>) =>
+    setDraft((p) => { if (!p) return p; const n = clone(p); const s = n.storage.find((s) => s.id === key); if (s) Object.assign(s, patch); return n; });
+  const removeSel = () => setDraft((p) => {
+    if (!p || !selKey) return p; const n = clone(p);
+    n.winches = n.winches.filter((w) => w.id !== selKey);
+    n.storage = n.storage.filter((s) => s.id !== selKey);
+    renumberAuto(n.winches);
+    return n;
+  });
 
-  // view-mode panel: ropes at the selected symbol
-  const viewLines = useMemo(() => {
-    if (edit || !selKey || !lines) return [];
-    const w = layout?.winches.find((w) => keyOf(w) === selKey);
-    const s = layout?.storage.find((s) => keyOf(s) === selKey);
-    if (w) return lines.items.filter((l) => l.location_label.startsWith(w.label + " "));
-    if (s) return lines.items.filter((l) => l.location_label === s.label);
-    return [];
-  }, [edit, selKey, lines, layout]);
+  const editWinch = draft?.winches.find((w) => w.id === selKey);
+  const editStorage = draft?.storage.find((s) => s.id === selKey);
+
+  const selWinch = !edit ? layout?.winches.find((w) => w.id === selKey) : undefined;
+  const selStorage = !edit ? layout?.storage.find((s) => s.id === selKey) : undefined;
 
   return (
     <>
@@ -144,6 +254,8 @@ export function DeckPage() {
               key={keyOf(w)}
               w={w}
               selected={selKey === keyOf(w)}
+              highlightDrumIdx={!edit && focus?.kind === "winch" && focus.id === w.id ? focus.drumIdx : undefined}
+              selectedDrumIdx={!edit && selKey === w.id ? selDrumIdx ?? undefined : undefined}
               onClick={() => setSelKey(keyOf(w))}
               onPointerDown={edit ? (e) => { drag.current = { id: keyOf(w), kind: "winch" }; setSelKey(keyOf(w)); (e.target as Element).setPointerCapture?.(e.pointerId); } : undefined}
             />
@@ -153,6 +265,7 @@ export function DeckPage() {
               key={keyOf(s)}
               s={s}
               selected={selKey === keyOf(s)}
+              highlighted={!edit && focus?.kind === "storage" && focus.id === s.id}
               onClick={() => setSelKey(keyOf(s))}
               onPointerDown={edit ? (e) => { drag.current = { id: keyOf(s), kind: "storage" }; setSelKey(keyOf(s)); (e.target as Element).setPointerCapture?.(e.pointerId); } : undefined}
             />
@@ -170,27 +283,40 @@ export function DeckPage() {
             ) : editStorage ? (
               <StorageEditor s={editStorage} onChange={(patch) => updateStorage(selKey!, patch)} onRemove={removeSel} />
             ) : (
-              <p className="muted">Select a symbol to edit, or drag to reposition. Add winches/storage from the toolbar.</p>
+              <p className="muted">Select a symbol to edit, or drag to reposition. Add winches/storage from the toolbar — new winches are auto-named from their deck position.</p>
             )
-          ) : selKey ? (
-            <>
-              <h3 style={{ marginTop: 0 }}>{(layout?.winches.find((w) => keyOf(w) === selKey)?.label) || (layout?.storage.find((s) => keyOf(s) === selKey)?.label)}</h3>
-              {viewLines.length === 0 && <p className="muted">No ropes here.</p>}
-              {viewLines.map((l) => (
-                <div key={l.id} className="list-item" onClick={() => navigate(`/lines/${l.id}`)}>
-                  <StatusDot condition={l.current_condition_status as never} />
-                  <div style={{ flex: 1 }}>
-                    <div>{l.name}</div>
-                    <div className="muted" style={{ fontSize: 12 }}>{l.location_label} · {l.serial_number}</div>
-                  </div>
-                </div>
-              ))}
-            </>
+          ) : selWinch && layout && vesselId ? (
+            <WinchPanel winch={selWinch} layout={layout} lines={lines?.items ?? []} vesselId={vesselId} selectedDrumIdx={selDrumIdx} onSelectDrum={setSelDrumIdx} />
+          ) : selStorage && layout && vesselId ? (
+            <StoragePanel storage={selStorage} layout={layout} lines={lines?.items ?? []} vesselId={vesselId} />
           ) : (
-            <p className="muted">Click a winch or storage to see its ropes. Worst-case status shown by the dot.</p>
+            <p className="muted">Click a winch or storage to manage its ropes. Worst-case status shown by the corner marker: ● Good, ◆ Monitor, ▲ Action.</p>
           )}
         </div>
       </div>
+
+      {(edit || areas.length > 0) && (
+        <div className="other-storage">
+          <div className="other-storage-head">Other storage{edit ? " — text areas (off the deck plan)" : ""}</div>
+          <div className="store-chips">
+            {areas.map((a) => (
+              <button
+                key={a.id}
+                className={"store-chip" + (selKey === a.id ? " sel" : "")}
+                onClick={() => setSelKey(a.id)}
+              >
+                <StatusDot condition={a.worstStatus as never} />
+                <span className="store-chip-label">{a.label || "Untitled area"}</span>
+                <span className="store-chip-count">{a.lineCount}</span>
+              </button>
+            ))}
+            {edit && (
+              <button className="store-chip add" onClick={addStorageArea}>+ Add area</button>
+            )}
+            {!edit && areas.length === 0 && <span className="muted">No other storage areas.</span>}
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -199,7 +325,31 @@ function WinchEditor({ w, onChange, onRemove }: { w: Winch; onChange: (p: Partia
   return (
     <>
       <h3 style={{ marginTop: 0 }}>Edit winch</h3>
-      <div className="field"><label>Label</label><input className="input" value={w.label} onChange={(e) => onChange({ label: e.target.value })} /></div>
+      <p className="muted" style={{ marginTop: -6 }}>Position: <b>{positionLabel(w.station, w.x)}</b></p>
+      <div className="field">
+        <label>
+          Name
+          {w.labelAuto
+            ? <span className="muted" style={{ fontWeight: 400 }}> · auto from position</span>
+            : <button className="linkbtn" style={{ marginLeft: 8 }} onClick={() => onChange({ labelAuto: true })}>use auto</button>}
+        </label>
+        <input
+          className="input"
+          value={w.label}
+          placeholder="auto-named"
+          onChange={(e) => onChange({ label: e.target.value, labelAuto: false })}
+        />
+      </div>
+      <div className="field">
+        <label>Drive</label>
+        <div className="seg">
+          {(["electric", "hydraulic"] as const).map((d) => (
+            <button key={d} className={w.driveType === d ? "active" : ""} onClick={() => onChange({ driveType: d })}>
+              {d === "electric" ? "Electric" : "Hydraulic"}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="field">
         <label>Station</label>
         <select className="input" value={w.station} onChange={(e) => onChange({ station: e.target.value })}>
@@ -207,11 +357,11 @@ function WinchEditor({ w, onChange, onRemove }: { w: Winch; onChange: (p: Partia
         </select>
       </div>
       <div className="field">
-        <label>Drums ({w.drum_count})</label>
+        <label>Drums ({w.drumCount})</label>
         <div className="stepper">
-          <button onClick={() => onChange({ drum_count: Math.max(1, w.drum_count - 1) })}>−</button>
-          <b>{w.drum_count}</b>
-          <button onClick={() => onChange({ drum_count: Math.min(6, w.drum_count + 1) })}>+</button>
+          <button onClick={() => onChange({ drumCount: Math.max(1, w.drumCount - 1) })}>−</button>
+          <b>{w.drumCount}</b>
+          <button onClick={() => onChange({ drumCount: Math.min(6, w.drumCount + 1) })}>+</button>
         </div>
       </div>
       <div className="field">
@@ -225,6 +375,18 @@ function WinchEditor({ w, onChange, onRemove }: { w: Winch; onChange: (p: Partia
         </div>
         <Compass deg={w.orientation} />
       </div>
+      <div className="row2">
+        <div className="field">
+          <label>SWL (t)</label>
+          <input className="input" type="number" min="0" step="0.1" value={w.swl ?? ""} placeholder="optional"
+            onChange={(e) => onChange({ swl: e.target.value === "" ? undefined : Number(e.target.value) })} />
+        </div>
+        <div className="field">
+          <label>Break load (t)</label>
+          <input className="input" type="number" min="0" step="0.1" value={w.breakLoad ?? ""} placeholder="optional"
+            onChange={(e) => onChange({ breakLoad: e.target.value === "" ? undefined : Number(e.target.value) })} />
+        </div>
+      </div>
       <button className="btn danger" onClick={onRemove} style={{ marginTop: 10 }}>Remove winch</button>
     </>
   );
@@ -233,15 +395,19 @@ function WinchEditor({ w, onChange, onRemove }: { w: Winch; onChange: (p: Partia
 function StorageEditor({ s, onChange, onRemove }: { s: Storage; onChange: (p: Partial<Storage>) => void; onRemove: () => void }) {
   return (
     <>
-      <h3 style={{ marginTop: 0 }}>Edit storage</h3>
-      <div className="field"><label>Label</label><input className="input" value={s.label} onChange={(e) => onChange({ label: e.target.value })} /></div>
-      <div className="field">
-        <label>Station</label>
-        <select className="input" value={s.station} onChange={(e) => onChange({ station: e.target.value })}>
-          <option value="fwd">Forward</option><option value="aft">Aft</option>
-        </select>
-      </div>
-      <button className="btn danger" onClick={onRemove} style={{ marginTop: 10 }}>Remove storage</button>
+      <h3 style={{ marginTop: 0 }}>{s.onMap ? "Edit storage" : "Edit storage area"}</h3>
+      <div className="field"><label>Name</label><input className="input" value={s.label} onChange={(e) => onChange({ label: e.target.value })} placeholder={s.onMap ? "" : "e.g. Under mooring deck"} /></div>
+      {s.onMap ? (
+        <div className="field">
+          <label>Station</label>
+          <select className="input" value={s.station} onChange={(e) => onChange({ station: e.target.value })}>
+            <option value="fwd">Forward</option><option value="aft">Aft</option>
+          </select>
+        </div>
+      ) : (
+        <p className="muted" style={{ marginTop: -2 }}>Vessel-wide · not drawn on the deck map.</p>
+      )}
+      <button className="btn danger" onClick={onRemove} style={{ marginTop: 10 }}>{s.onMap ? "Remove storage" : "Remove area"}</button>
     </>
   );
 }

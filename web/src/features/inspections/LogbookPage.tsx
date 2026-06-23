@@ -33,11 +33,11 @@ export function LogbookPage() {
             <tbody>
               {entries.map((i) => (
                 <tr key={i.id}>
-                  <td>{dateLabel(i.inspected_at)}</td>
-                  <td>{i.line_name}</td>
-                  <td>{i.serial_number}</td>
-                  <td><StatusDot condition={i.condition_status as never} /> {i.condition_status}</td>
-                  <td>{i.inspected_by || (i.source === "api" ? "Third-party API" : "—")}</td>
+                  <td>{dateLabel(i.inspectedAt)}</td>
+                  <td>{i.lineName}</td>
+                  <td>{i.serialNumber}</td>
+                  <td><StatusDot condition={i.conditionStatus as never} /> {i.conditionStatus}</td>
+                  <td>{i.inspectedBy || (i.source === "api" ? "Third-party API" : "—")}</td>
                   <td>{i.notes || "—"}</td>
                 </tr>
               ))}

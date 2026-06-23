@@ -1,0 +1,85 @@
+# Playground deployment (ai-playground server): single-vessel onboard stack published at
+# mooring.operationcentric.com via the host's existing Traefik + cloudflare-companion.
+#
+# Only `web` and `minio` join the shared external `traefik_proxy` network; db/api stay on
+# the private `mooring_internal` net and expose NO host ports, so nothing else on the box
+# is touched. Secrets come from --env-file deploy/.env.playground (never committed).
+#
+#   docker compose --env-file deploy/.env.playground -f deploy/docker-compose.playground.yml up -d --build
+name: mooring
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: mooring
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mooring}
+      POSTGRES_DB: mooring
+    volumes: ["mooring_db:/var/lib/postgresql"]
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mooring"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?set in env-file}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?set in env-file}
+    volumes: ["mooring_minio:/data"]
+    networks: [internal, traefik_proxy]
+    restart: unless-stopped
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: traefik_proxy
+      traefik.http.routers.mooring-s3.entrypoints: https
+      traefik.http.routers.mooring-s3.rule: Host(`mooring-s3.operationcentric.com`)
+      traefik.http.services.mooring-s3.loadbalancer.server.port: "9000"
+
+  # Single app container: the Go server serves both the API and the built web bundle.
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.app
+      args:
+        VITE_SCOPE: onboard
+        VITE_VESSEL_ID: ${VESSEL_ID:-00000000-0000-0000-0000-0000000000aa}
+    environment:
+      SCOPE: onboard
+      VESSEL_ID: ${VESSEL_ID:-00000000-0000-0000-0000-0000000000aa}
+      HTTP_ADDR: ":8080"
+      WEB_DIR: /web
+      DATABASE_URL: postgres://mooring:${DB_PASSWORD:-mooring}@db:5432/mooring?sslmode=disable
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: https://mooring-s3.operationcentric.com
+      S3_USE_SSL: "false"
+      S3_BUCKET: mooring
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?set in env-file}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?set in env-file}
+      JWT_SECRET: ${JWT_SECRET:?set in env-file}
+      ADMIN_BOOTSTRAP_KEY: ${ADMIN_BOOTSTRAP_KEY:?set in env-file}
+    networks: [internal, traefik_proxy]
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: traefik_proxy
+      traefik.http.routers.mooring-web.entrypoints: https
+      traefik.http.routers.mooring-web.rule: Host(`mooring.operationcentric.com`)
+      traefik.http.services.mooring-web.loadbalancer.server.port: "8080"
+
+volumes:
+  mooring_db:
+  mooring_minio:
+
+networks:
+  internal:
+    name: mooring_internal
+  traefik_proxy:
+    external: true

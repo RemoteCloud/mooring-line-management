@@ -63,8 +63,8 @@ export function useVesselLayout(vesselId: string | undefined) {
     enabled: !!vesselId,
     queryKey: ["layout", vesselId],
     queryFn: async () => {
-      const { data, error } = await api.GET("/vessels/{vessel_id}/layout", {
-        params: { path: { vessel_id: vesselId! } },
+      const { data, error } = await api.GET("/vessels/{vesselId}/layout", {
+        params: { path: { vesselId: vesselId! } },
       });
       if (error) throw error;
       return data as Layout;
@@ -73,7 +73,7 @@ export function useVesselLayout(vesselId: string | undefined) {
 }
 
 export type LineFilters = {
-  line_type_id?: string;
+  lineTypeId?: string;
   condition?: "Good" | "Monitor" | "Action";
   placement?: "installed" | "spare";
   q?: string;
@@ -84,9 +84,9 @@ export function useLines(vesselId: string | undefined, filters: LineFilters) {
     enabled: !!vesselId,
     queryKey: ["lines", vesselId, filters],
     queryFn: async () => {
-      const { data, error } = await api.GET("/vessels/{vessel_id}/lines", {
+      const { data, error } = await api.GET("/vessels/{vesselId}/lines", {
         params: {
-          path: { vessel_id: vesselId! },
+          path: { vesselId: vesselId! },
           query: { ...filters, limit: 500 },
         },
       });
@@ -114,8 +114,8 @@ export function useRegisterLine(vesselId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: components["schemas"]["LineBody"]) => {
-      const { data, error } = await api.POST("/vessels/{vessel_id}/lines", {
-        params: { path: { vessel_id: vesselId } },
+      const { data, error } = await api.POST("/vessels/{vesselId}/lines", {
+        params: { path: { vesselId: vesselId } },
         body,
       });
       if (error) throw error;
@@ -125,17 +125,56 @@ export function useRegisterLine(vesselId: string) {
   });
 }
 
+// MoveError normalizes any non-2xx move failure into a status + message so the
+// UI can show a clear inline error (409 occupied, 422 bad target, 404, etc.).
+export type MoveError = { status: number; message: string };
+
+export function useMoveLine(vesselId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<Line, MoveError, { lineId: string; toDrumId?: string; toStorageId?: string }>({
+    mutationFn: async ({ lineId, toDrumId, toStorageId }) => {
+      const { data, error, response } = await api.POST("/lines/{id}/move", {
+        params: { path: { id: lineId } },
+        body: { toDrumId: toDrumId, toStorageId: toStorageId },
+      });
+      if (error || !data) {
+        const detail = (error as { detail?: string } | undefined)?.detail;
+        const msg =
+          response?.status === 409 ? "That drum already holds a line."
+          : response?.status === 422 ? (detail ?? "Invalid move target.")
+          : response?.status === 404 ? "Line or destination not found."
+          : detail ?? "Move failed. Try again.";
+        throw { status: response?.status ?? 0, message: msg } as MoveError;
+      }
+      return data as Line;
+    },
+    // occupancy + worst-status change, so both the register list and the deck
+    // layout must refetch.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lines"] });
+      qc.invalidateQueries({ queryKey: ["layout", vesselId] });
+    },
+  });
+}
+
 export function useSaveLayout(vesselId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: { winches: unknown[]; storage: unknown[] }) => {
-      const { data, error } = await api.PUT("/vessels/{vessel_id}/layout", {
-        params: { path: { vessel_id: vesselId } },
+      const { data, error } = await api.PUT("/vessels/{vesselId}/layout", {
+        params: { path: { vesselId: vesselId } },
         body: body as never,
       });
       if (error) throw error;
       return data as Layout;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["layout", vesselId] }),
+    // Seed the cache with the PUT's authoritative post-save layout so the deck
+    // shows newly added winches/storage immediately. Relying on an async
+    // invalidate→refetch leaves a window where the view falls back to the stale
+    // pre-save cache and the just-added symbol appears to vanish.
+    onSuccess: (data) => {
+      qc.setQueryData(["layout", vesselId], data);
+      qc.invalidateQueries({ queryKey: ["lines"] });
+    },
   });
 }

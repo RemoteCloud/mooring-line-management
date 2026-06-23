@@ -22,6 +22,7 @@ export function useTurnLine(lineId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["line", lineId] });
       qc.invalidateQueries({ queryKey: ["lines"] });
+      qc.invalidateQueries({ queryKey: ["layout"] });
     },
   });
 }

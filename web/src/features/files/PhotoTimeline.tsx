@@ -18,19 +18,19 @@ export function PhotoTimeline({ lineId }: { lineId: string }) {
         <figure key={p.id} className="photo-card">
           {p.url ? (
             <a href={p.url} target="_blank" rel="noreferrer">
-              <img src={p.url} alt={`Condition photo ${dateLabel(p.taken_at)}`} loading="lazy" />
+              <img src={p.url} alt={`Condition photo ${dateLabel(p.takenAt)}`} loading="lazy" />
             </a>
           ) : (
             <div className="photo-missing muted">No image</div>
           )}
           <figcaption>
             <div className="photo-meta">
-              <span>{dateLabel(p.taken_at)}</span>
+              <span>{dateLabel(p.takenAt)}</span>
               {p.side && <span className="muted">Side {p.side}</span>}
             </div>
-            {p.condition_at_capture && (
+            {p.conditionAtCapture && (
               <div className="photo-cond">
-                <StatusDot condition={p.condition_at_capture as never} /> {p.condition_at_capture}
+                <StatusDot condition={p.conditionAtCapture as never} /> {p.conditionAtCapture}
               </div>
             )}
             <button

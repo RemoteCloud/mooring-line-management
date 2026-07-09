@@ -73,6 +73,7 @@ func NewAPI(s *Server) (http.Handler, huma.API) {
 	registerTurn(api, s)
 	registerInspections(api, s)
 	registerFiles(api, s)
+	registerEquipment(api, s)
 	registerOverview(api, s)
 	registerWebhooks(api, s)
 	registerUsers(api, s)

@@ -34,6 +34,8 @@ var webhookEventCatalog = []webhookEventInfo{
 	{"inspection.feedback", "Feedback was attached to an inspection", withCommon("payload.id", "payload.inspectionId", "payload.status")},
 	{"photo.added", "A condition photo was attached to a line", withCommon("payload.id", "payload.lineId", "payload.fileRef")},
 	{"document.added", "A document was uploaded for a line", withCommon("payload.id", "payload.lineId", "payload.kind", "payload.fileRef")},
+	{"equipment.received", "Received equipment was registered", withCommon("payload.id", "payload.name")},
+	{"equipment.photo.added", "A photo was attached to received equipment", withCommon("payload.id", "payload.equipmentId")},
 	{"layout.updated", "The deck layout was saved", withCommon("payload.vesselId")},
 }
 

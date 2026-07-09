@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -80,6 +81,50 @@ func registerVessel(api huma.API, s *Server) {
 			}
 		}
 		return &struct{ Body store.Layout }{Body: l}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "list-locations", Method: http.MethodGet, Path: "/vessels/{vesselId}/locations",
+		Summary: "List all storable locations (drums + storage), flat",
+		Description: "Returns a flat list of every place a line or piece of equipment can sit: each winch drum " +
+			"and each storage area, with its label, position, occupancy (`lineCount`) and worst-case condition. " +
+			"This is the layout flattened for enumeration — use `?kind=storage` to get just the storage areas " +
+			"(handy when choosing a `storageLocationId` for received equipment), or `?kind=drum` for drums.",
+		Tags: tag, Errors: []int{http.StatusNotFound},
+	}, func(ctx context.Context, in *struct {
+		VesselID string `path:"vesselId" format:"uuid"`
+		Kind     string `query:"kind" enum:"drum,storage" doc:"Restrict the list to one location type"`
+	}) (*struct{ Body []store.LocationEntry }, error) {
+		l, err := s.Store.GetLayout(ctx, s.vessel(in.VesselID))
+		if err != nil {
+			return nil, mapErr(err)
+		}
+		out := []store.LocationEntry{}
+		if in.Kind != "storage" {
+			for _, w := range l.Winches {
+				for _, d := range w.Drums {
+					out = append(out, store.LocationEntry{
+						ID: d.ID, Kind: "drum",
+						Label:      fmt.Sprintf("%s · D%d", w.Label, d.Idx),
+						Station:    w.Station,
+						WinchID:    w.ID, WinchLabel: w.Label, DrumIdx: d.Idx,
+						OnMap: true, X: w.X, Y: w.Y,
+						LineCount: d.LineCount,
+					})
+				}
+			}
+		}
+		if in.Kind != "drum" {
+			for _, st := range l.Storage {
+				out = append(out, store.LocationEntry{
+					ID: st.ID, Kind: "storage",
+					Label: st.Label, Station: st.Station,
+					OnMap: st.OnMap, X: st.X, Y: st.Y,
+					LineCount: st.LineCount, WorstStatus: st.WorstStatus,
+				})
+			}
+		}
+		return &struct{ Body []store.LocationEntry }{Body: out}, nil
 	})
 
 	huma.Register(api, huma.Operation{

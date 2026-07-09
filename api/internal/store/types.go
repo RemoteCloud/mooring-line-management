@@ -83,6 +83,24 @@ type Layout struct {
 	Storage  []Storage `json:"storage"`
 }
 
+// LocationEntry is one storable location in the flat locations list: either a winch
+// drum or a storage area. It flattens the nested layout so an external app can
+// enumerate every place a line or piece of equipment can sit.
+type LocationEntry struct {
+	ID          string  `json:"id" doc:"Drum id or storage-area id"`
+	Kind        string  `json:"kind" doc:"Location type" enum:"drum,storage"`
+	Label       string  `json:"label" doc:"Human label, e.g. \"FWD-1 · D2\" for a drum or \"Bosun store\" for storage"`
+	Station     string  `json:"station,omitempty" doc:"Deck the location is on; empty for vessel-wide off-map storage" enum:"fwd,aft"`
+	WinchID     string  `json:"winchId,omitempty" doc:"Parent winch id (drum locations only)"`
+	WinchLabel  string  `json:"winchLabel,omitempty" doc:"Parent winch label (drum locations only)"`
+	DrumIdx     int     `json:"drumIdx,omitempty" doc:"1-based drum position on the winch (drum locations only)"`
+	OnMap       bool    `json:"onMap" doc:"Whether the location is drawn on the deck plan"`
+	X           float64 `json:"x" doc:"Normalized horizontal position (0..1) across the deck"`
+	Y           float64 `json:"y" doc:"Normalized vertical position (0..1) down the deck"`
+	LineCount   int     `json:"lineCount" doc:"Number of lines currently at this location"`
+	WorstStatus string  `json:"worstStatus,omitempty" doc:"Worst condition among the lines here" enum:"Good,Monitor,Action"`
+}
+
 // Lines -------------------------------------------------------------------
 
 // LineRow is a compact row for the register table.

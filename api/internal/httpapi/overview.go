@@ -14,11 +14,11 @@ import (
 func registerOverview(api huma.API, s *Server) {
 	huma.Register(api, huma.Operation{
 		OperationID: "over-get", Method: http.MethodGet,
-		Path:    "/vessels/{vessel_id}/overview",
+		Path:    "/vessels/{vesselId}/overview",
 		Summary: "Vessel dashboard overview (KPIs, condition, attention, trend)",
 		Tags:    []string{"dashboard"},
 	}, func(ctx context.Context, in *struct {
-		VesselID string `path:"vessel_id" format:"uuid"`
+		VesselID string `path:"vesselId" format:"uuid"`
 	}) (*struct{ Body store.Overview }, error) {
 		ov, err := s.Store.Overview(ctx, s.vessel(in.VesselID))
 		if err != nil {

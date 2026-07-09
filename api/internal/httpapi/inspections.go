@@ -12,19 +12,28 @@ import (
 )
 
 type inspLogBody struct {
-	ConditionStatus string `json:"condition_status" enum:"Good,Monitor,Action"`
-	InspectedBy     string `json:"inspected_by,omitempty"`
-	InspectedAt     string `json:"inspected_at,omitempty" format:"date-time"`
-	Notes           string `json:"notes,omitempty"`
+	ConditionStatus string `json:"conditionStatus" enum:"Good,Monitor,Action" doc:"Assessed condition of the line" example:"Monitor"`
+	InspectedBy     string `json:"inspectedBy,omitempty" doc:"Who performed the inspection" example:"Bosun A. Hansen"`
+	InspectedAt     string `json:"inspectedAt,omitempty" format:"date-time" doc:"When the inspection happened (RFC3339); defaults to now"`
+	Notes           string `json:"notes,omitempty" example:"Light surface wear, no core damage."`
 }
 
 type inspIngestBody struct {
-	SerialNumber    string `json:"serial_number" minLength:"1"`
-	ExternalID      string `json:"external_id,omitempty"`
-	ConditionStatus string `json:"condition_status" enum:"Good,Monitor,Action"`
-	InspectedBy     string `json:"inspected_by,omitempty"`
-	InspectedAt     string `json:"inspected_at,omitempty" format:"date-time"`
+	SerialNumber    string `json:"serialNumber" minLength:"1" doc:"Serial of the line being inspected; used to resolve it (vessel-wide unique)" example:"NCL-LUNA-0142"`
+	ExternalID      string `json:"externalId,omitempty" doc:"Caller-supplied idempotency key; replaying the same value returns the existing inspection with created=false" example:"acme-insp-88231"`
+	ConditionStatus string `json:"conditionStatus" enum:"Good,Monitor,Action" doc:"Assessed condition of the line" example:"Action"`
+	InspectedBy     string `json:"inspectedBy,omitempty" doc:"Person or system that performed the inspection" example:"Acme Rope Survey"`
+	InspectedAt     string `json:"inspectedAt,omitempty" format:"date-time" doc:"When the inspection happened (RFC3339); defaults to now"`
 	Notes           string `json:"notes,omitempty"`
+}
+
+type inspFeedbackBody struct {
+	Status          string `json:"status" enum:"acknowledged,disputed,resolved,comment" doc:"How the reviewer dispositioned the inspection" example:"acknowledged"`
+	ExternalID      string `json:"externalId,omitempty" doc:"Caller-supplied idempotency key; replaying the same value returns the existing feedback with created=false" example:"acme-rev-5512"`
+	Author          string `json:"author,omitempty" doc:"Person or system giving the feedback" example:"Acme Rope Survey"`
+	ConditionStatus string `json:"conditionStatus,omitempty" enum:"Good,Monitor,Action" doc:"Optional condition the reviewer suggests for the line" example:"Monitor"`
+	Notes           string `json:"notes,omitempty" example:"Sheath abrasion confirmed at 12m; schedule re-inspection."`
+	CreatedAt       string `json:"createdAt,omitempty" format:"date-time" doc:"When the feedback was made; defaults to now"`
 }
 
 // inspParseTime parses an optional RFC3339 timestamp; empty yields nil (defaults to now in the store).
@@ -46,8 +55,13 @@ func registerInspections(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "insp-log", Method: http.MethodPost, Path: "/lines/{id}/inspections",
-		Summary: "Log a manual inspection for a line", Tags: tag,
+		Summary: "Log a manual inspection for a line",
+		Description: "Records a condition assessment against a line and updates the line's current condition. " +
+			"Use this for crew/manual entries; third-party systems should use `POST /inspections/ingest`. " +
+			"Fires the `inspection.logged` webhook event.",
+		Tags:          tag,
 		DefaultStatus: http.StatusCreated,
+		Errors:        []int{http.StatusUnprocessableEntity, http.StatusNotFound},
 	}, func(ctx context.Context, in *struct {
 		ID   string `path:"id" format:"uuid"`
 		Body inspLogBody
@@ -70,7 +84,13 @@ func registerInspections(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "insp-ingest", Method: http.MethodPost, Path: "/inspections/ingest",
-		Summary: "Ingest an inspection from the third-party API (idempotent by external_id)", Tags: tag,
+		Summary: "Ingest an inspection from a third-party system",
+		Description: "The inbound integration endpoint for external inspection providers. Resolves the line by " +
+			"`serialNumber`, records the assessment, and updates the line's current condition. Idempotent by " +
+			"`externalId`: replaying the same key returns the stored inspection with `created:false`. Returns " +
+			"`{ inspection, created }`. Fires `inspection.logged` only on first insert.",
+		Tags:   tag,
+		Errors: []int{http.StatusUnprocessableEntity, http.StatusNotFound},
 	}, func(ctx context.Context, in *struct {
 		Body inspIngestBody
 	}) (*struct {
@@ -101,7 +121,9 @@ func registerInspections(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "insp-list", Method: http.MethodGet, Path: "/lines/{id}/inspections",
-		Summary: "List inspections for a line", Tags: tag,
+		Summary:     "List inspections for a line",
+		Description: "Returns a line's inspections, most recent first.",
+		Tags:        tag,
 	}, func(ctx context.Context, in *struct {
 		ID string `path:"id" format:"uuid"`
 	}) (*struct{ Body []store.Inspection }, error) {
@@ -114,10 +136,13 @@ func registerInspections(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "insp-logbook", Method: http.MethodGet, Path: "/inspections/logbook",
-		Summary: "Chronological inspection logbook for a vessel", Tags: tag,
+		Summary: "Chronological inspection logbook for a vessel",
+		Description: "Returns inspections across a vessel (newest first), each enriched with the line's name and serial. " +
+			"On a shore deployment, omit `vesselId` for a fleet-wide log.",
+		Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `query:"vessel_id"`
-		Limit    int    `query:"limit"`
+		VesselID string `query:"vesselId" doc:"Vessel to scope to; ignored onboard (always the configured vessel)"`
+		Limit    int    `query:"limit" doc:"Max entries to return (default 100)"`
 	}) (*struct{ Body []store.InspLogbookEntry }, error) {
 		items, err := s.Store.Logbook(ctx, s.vessel(in.VesselID), in.Limit)
 		if err != nil {
@@ -128,10 +153,13 @@ func registerInspections(api huma.API, s *Server) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "insp-report", Method: http.MethodGet, Path: "/reports/condition",
-		Summary: "Download a condition report (CSV or PDF)", Tags: tag,
+		Summary: "Download a condition report (CSV or PDF)",
+		Description: "Returns a downloadable report of every top-level line's latest condition. " +
+			"`format=csv` (default) or `format=pdf`. For programmatic reads prefer the JSON list endpoints.",
+		Tags: tag,
 	}, func(ctx context.Context, in *struct {
-		VesselID string `query:"vessel_id"`
-		Format   string `query:"format" enum:"pdf,csv"`
+		VesselID string `query:"vesselId" doc:"Vessel to scope to; ignored onboard"`
+		Format   string `query:"format" enum:"pdf,csv" doc:"Output format; defaults to csv"`
 	}) (*struct {
 		ContentType string `header:"Content-Type"`
 		Disposition string `header:"Content-Disposition"`
@@ -160,5 +188,65 @@ func registerInspections(api huma.API, s *Server) {
 			out.Body = report.CSV(rows)
 		}
 		return out, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "insp-feedback", Method: http.MethodPost, Path: "/inspections/{id}/feedback",
+		Summary: "Attach feedback to an inspection",
+		Description: "Records a follow-up assessment or acknowledgement on an existing inspection — " +
+			"the channel a third-party reviewer uses after consuming an `inspection.logged` event. " +
+			"Idempotent by `externalId` (replaying the same key returns the stored feedback with `created:false`). " +
+			"Feedback is an annotation: it does not change the line's condition. Fires the `inspection.feedback` webhook event.",
+		Tags:   tag,
+		Errors: []int{http.StatusUnprocessableEntity, http.StatusNotFound},
+	}, func(ctx context.Context, in *struct {
+		ID   string `path:"id" format:"uuid" doc:"The inspection being commented on"`
+		Body inspFeedbackBody
+	}) (*struct {
+		Body struct {
+			Feedback store.InspectionFeedback `json:"feedback"`
+			Created  bool                     `json:"created" doc:"False when this externalId was already recorded"`
+		}
+	}, error) {
+		at, err := inspParseTime(in.Body.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		fb, created, err := s.Store.CreateFeedback(ctx, in.ID, store.FeedbackInput{
+			ExternalID:      in.Body.ExternalID,
+			Author:          in.Body.Author,
+			Status:          in.Body.Status,
+			ConditionStatus: in.Body.ConditionStatus,
+			Notes:           in.Body.Notes,
+			CreatedAt:       at,
+		})
+		if err != nil {
+			return nil, mapErr(err)
+		}
+		out := &struct {
+			Body struct {
+				Feedback store.InspectionFeedback `json:"feedback"`
+				Created  bool                     `json:"created" doc:"False when this externalId was already recorded"`
+			}
+		}{}
+		out.Body.Feedback = fb
+		out.Body.Created = created
+		return out, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "insp-feedback-list", Method: http.MethodGet, Path: "/inspections/{id}/feedback",
+		Summary:     "List feedback on an inspection",
+		Description: "Returns every feedback entry attached to an inspection, oldest first. " +
+			"An unknown inspection id yields an empty list.",
+		Tags: tag,
+	}, func(ctx context.Context, in *struct {
+		ID string `path:"id" format:"uuid"`
+	}) (*struct{ Body []store.InspectionFeedback }, error) {
+		items, err := s.Store.ListFeedback(ctx, in.ID)
+		if err != nil {
+			return nil, mapErr(err)
+		}
+		return &struct{ Body []store.InspectionFeedback }{Body: items}, nil
 	})
 }

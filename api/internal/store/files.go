@@ -9,28 +9,28 @@ import (
 // handler via a presigned GET; the store leaves it blank.
 type FilePhoto struct {
 	ID                 string     `json:"id"`
-	LineID             string     `json:"line_id"`
-	InspectionID       *string    `json:"inspection_id,omitempty"`
-	FileRef            string     `json:"file_ref"`
-	TakenAt            *time.Time `json:"taken_at,omitempty"`
+	LineID             string     `json:"lineId"`
+	InspectionID       *string    `json:"inspectionId,omitempty"`
+	FileRef            string     `json:"fileRef"`
+	TakenAt            *time.Time `json:"takenAt,omitempty"`
 	Side               string     `json:"side,omitempty"`
-	ConditionAtCapture string     `json:"condition_at_capture,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
+	ConditionAtCapture string     `json:"conditionAtCapture,omitempty"`
+	CreatedAt          time.Time  `json:"createdAt"`
 	URL                string     `json:"url,omitempty"`
 }
 
 // FileDoc is a certificate, manual or guide. URL is populated by the handler.
 type FileDoc struct {
 	ID          string    `json:"id"`
-	LineID      *string   `json:"line_id,omitempty"`
-	ProductID   *string   `json:"product_id,omitempty"`
-	VesselID    *string   `json:"vessel_id,omitempty"`
+	LineID      *string   `json:"lineId,omitempty"`
+	ProductID   *string   `json:"productId,omitempty"`
+	VesselID    *string   `json:"vesselId,omitempty"`
 	Kind        string    `json:"kind"`
-	FileRef     string    `json:"file_ref"`
-	FileName    string    `json:"file_name"`
-	ContentType string    `json:"content_type,omitempty"`
-	SizeBytes   int64     `json:"size_bytes"`
-	CreatedAt   time.Time `json:"created_at"`
+	FileRef     string    `json:"fileRef"`
+	FileName    string    `json:"fileName"`
+	ContentType string    `json:"contentType,omitempty"`
+	SizeBytes   int64     `json:"sizeBytes"`
+	CreatedAt   time.Time `json:"createdAt"`
 	URL         string    `json:"url,omitempty"`
 }
 
@@ -60,7 +60,7 @@ RETURNING id, line_id, inspection_id, file_ref, taken_at, COALESCE(side,''), COA
 	}
 
 	if err := writeOutbox(ctx, tx, vesselID, "condition_photo", id, "photo.added",
-		map[string]any{"id": id, "line_id": lineID, "file_ref": fileRef}); err != nil {
+		map[string]any{"id": id, "lineId": lineID, "fileRef": fileRef}); err != nil {
 		return FilePhoto{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -132,7 +132,7 @@ RETURNING id, line_id, product_id, vessel_id, kind, file_ref, file_name,
 	}
 
 	if err := writeOutbox(ctx, tx, vesselID, "document", id, "document.added",
-		map[string]any{"id": id, "line_id": lineID, "kind": kind, "file_ref": fileRef}); err != nil {
+		map[string]any{"id": id, "lineId": lineID, "kind": kind, "fileRef": fileRef}); err != nil {
 		return FileDoc{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {

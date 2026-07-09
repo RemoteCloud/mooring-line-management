@@ -18,15 +18,18 @@ export interface LineType {
 
 export interface Product {
   id: string;
-  maker_id: string;
-  maker_name: string;
-  line_type_id: string;
-  line_type_name: string;
-  product_name: string;
-  construction_type?: string;
-  default_length?: number;
-  can_be_turned: boolean;
-  manufacturer_manual_ref?: string;
+  makerId: string;
+  makerName: string;
+  lineTypeId: string;
+  lineTypeName: string;
+  productName: string;
+  modelNumber?: string;
+  constructionType?: string;
+  defaultLength?: number;
+  swl?: number;
+  breakLoad?: number;
+  canBeTurned: boolean;
+  manufacturerManualRef?: string;
   notes?: string;
 }
 
@@ -35,14 +38,22 @@ export interface CreateMakerBody {
   notes?: string;
 }
 
+export interface CreateLineTypeBody {
+  name: string;
+  description?: string;
+}
+
 export interface CreateProductBody {
-  maker_id: string;
-  line_type_id: string;
-  product_name: string;
-  construction_type?: string;
-  default_length?: number;
-  can_be_turned: boolean;
-  manufacturer_manual_ref?: string;
+  makerId: string;
+  lineTypeId: string;
+  productName: string;
+  modelNumber?: string;
+  constructionType?: string;
+  defaultLength?: number;
+  swl?: number;
+  breakLoad?: number;
+  canBeTurned: boolean;
+  manufacturerManualRef?: string;
   notes?: string;
 }
 
@@ -54,17 +65,26 @@ async function getJSON<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-async function postJSON<T>(path: string, body: unknown): Promise<T> {
+async function sendJSON<T>(
+  method: "POST" | "PATCH",
+  path: string,
+  body: unknown,
+): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`POST ${path} failed: ${res.status} ${res.statusText}`);
+    throw new Error(`${method} ${path} failed: ${res.status} ${res.statusText}`);
   }
   return (await res.json()) as T;
 }
+
+const postJSON = <T>(path: string, body: unknown) =>
+  sendJSON<T>("POST", path, body);
+const patchJSON = <T>(path: string, body: unknown) =>
+  sendJSON<T>("PATCH", path, body);
 
 export function useMakers() {
   return useQuery<Maker[]>({
@@ -97,10 +117,50 @@ export function useCreateMaker() {
   });
 }
 
+export function useCreateLineType() {
+  const qc = useQueryClient();
+  return useMutation<LineType, Error, CreateLineTypeBody>({
+    mutationFn: (body: CreateLineTypeBody) => postJSON<LineType>("/line-types", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["catalogue", "line-types"] });
+    },
+  });
+}
+
 export function useCreateProduct() {
   const qc = useQueryClient();
   return useMutation<Product, Error, CreateProductBody>({
     mutationFn: (body: CreateProductBody) => postJSON<Product>("/products", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["catalogue", "products"] });
+    },
+  });
+}
+
+export function useUpdateMaker() {
+  const qc = useQueryClient();
+  return useMutation<Maker, Error, { id: string; body: CreateMakerBody }>({
+    mutationFn: ({ id, body }) => patchJSON<Maker>(`/makers/${id}`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["catalogue", "makers"] });
+    },
+  });
+}
+
+export function useUpdateLineType() {
+  const qc = useQueryClient();
+  return useMutation<LineType, Error, { id: string; body: CreateLineTypeBody }>({
+    mutationFn: ({ id, body }) => patchJSON<LineType>(`/line-types/${id}`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["catalogue", "line-types"] });
+    },
+  });
+}
+
+export function useUpdateProduct() {
+  const qc = useQueryClient();
+  return useMutation<Product, Error, { id: string; body: CreateProductBody }>({
+    mutationFn: ({ id, body }) => patchJSON<Product>(`/products/${id}`, body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["catalogue", "products"] });
     },

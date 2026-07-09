@@ -5,21 +5,21 @@ export function LogInspectionDialog({ lineId, onClose }: { lineId: string; onClo
   const log = useLogInspection(lineId);
 
   const [form, setForm] = useState({
-    condition_status: "Good" as "Good" | "Monitor" | "Action",
-    inspected_by: "",
+    conditionStatus: "Good" as "Good" | "Monitor" | "Action",
+    inspectedBy: "",
     notes: "",
-    inspected_at: "",
+    inspectedAt: "",
   });
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [k]: e.target.value });
 
   const submit = async () => {
     await log.mutateAsync({
-      condition_status: form.condition_status,
-      inspected_by: form.inspected_by || undefined,
+      conditionStatus: form.conditionStatus,
+      inspectedBy: form.inspectedBy || undefined,
       notes: form.notes || undefined,
       // datetime-local yields "YYYY-MM-DDTHH:mm"; append seconds + Z for RFC3339.
-      inspected_at: form.inspected_at ? `${form.inspected_at}:00Z` : undefined,
+      inspectedAt: form.inspectedAt ? `${form.inspectedAt}:00Z` : undefined,
     });
     onClose();
   };
@@ -31,7 +31,7 @@ export function LogInspectionDialog({ lineId, onClose }: { lineId: string; onClo
 
         <div className="field">
           <label>Condition</label>
-          <select className="input" value={form.condition_status} onChange={set("condition_status")}>
+          <select className="input" value={form.conditionStatus} onChange={set("conditionStatus")}>
             <option value="Good">Good</option>
             <option value="Monitor">Monitor</option>
             <option value="Action">Action</option>
@@ -40,12 +40,12 @@ export function LogInspectionDialog({ lineId, onClose }: { lineId: string; onClo
 
         <div className="field">
           <label>Inspected by</label>
-          <input className="input" value={form.inspected_by} onChange={set("inspected_by")} />
+          <input className="input" value={form.inspectedBy} onChange={set("inspectedBy")} />
         </div>
 
         <div className="field">
           <label>Date &amp; time (optional)</label>
-          <input className="input" type="datetime-local" value={form.inspected_at} onChange={set("inspected_at")} />
+          <input className="input" type="datetime-local" value={form.inspectedAt} onChange={set("inspectedAt")} />
         </div>
 
         <div className="field">

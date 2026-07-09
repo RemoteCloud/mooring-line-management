@@ -1,72 +1,158 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { visibleNav } from "./nav";
 import { SCOPE } from "../config";
 import { VesselSwitcher } from "./VesselSwitcher";
 import { ConnBadge } from "./ConnBadge";
 import { VesselProvider } from "./VesselContext";
+import { getTheme, toggleTheme, type Theme } from "../lib/theme";
 
-function Topbar() {
+// Light/dark switch. Theme lives on <html data-theme> (set pre-paint in index.html)
+// and persists to localStorage; this button just flips it.
+function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme>(() => getTheme());
+  const other = theme === "dark" ? "light" : "dark";
+  return (
+    <button
+      type="button"
+      className="icon-btn"
+      aria-label={`Switch to ${other} mode`}
+      title={`Switch to ${other} mode`}
+      onClick={() => setTheme(toggleTheme())}
+    >
+      {theme === "dark" ? "☀️" : "🌙"}
+    </button>
+  );
+}
+
+// Collapsed to an icon by default so the nav tabs keep their room; expands to a
+// full input on click and collapses again when empty/blurred or on Escape.
+function GlobalSearch() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+
+  if (!open) {
+    return (
+      <button type="button" className="icon-btn" aria-label="Search" title="Search" onClick={() => setOpen(true)}>
+        🔍
+      </button>
+    );
+  }
   return (
-    <header className="topbar">
-      <form
-        className="search"
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate("/register?q=" + encodeURIComponent(q));
-        }}
+    <form
+      className="search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (q.trim()) navigate("/register?q=" + encodeURIComponent(q));
+        setOpen(false);
+      }}
+    >
+      <span>🔍</span>
+      <input
+        autoFocus
+        placeholder="Search ID, serial, location…"
+        aria-label="Global search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+        onBlur={() => !q && setOpen(false)}
+      />
+    </form>
+  );
+}
+
+// GridMenu is the app-grid launcher: a small popover holding the server-rendered
+// doc UIs (/docs, /swagger). Those are real navigations (not SPA routes), so they
+// stay plain anchors that open in a new tab.
+function GridMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
+  return (
+    <div className="grid-menu" ref={ref}>
+      <button
+        type="button"
+        className="icon-btn"
+        aria-label="Apps & API"
+        aria-expanded={open}
+        title="Apps & API reference"
+        onClick={() => setOpen((o) => !o)}
       >
-        <span>🔍</span>
-        <input
-          placeholder="Search ID, serial, location…"
-          aria-label="Global search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-      </form>
-      <div className="spacer" />
-      <ConnBadge />
-      <span className={"scope-badge " + SCOPE}>{SCOPE.toUpperCase()}</span>
-      <VesselSwitcher />
-    </header>
+        ▦
+      </button>
+      {open && (
+        <div className="grid-menu-panel" role="menu">
+          <div className="grid-menu-head">API reference</div>
+          <a className="grid-menu-item" href="/docs" target="_blank" rel="noopener" onClick={() => setOpen(false)}>
+            <span className="nav-ico">⟨⟩</span> API docs
+          </a>
+          <a className="grid-menu-item" href="/swagger" target="_blank" rel="noopener" onClick={() => setOpen(false)}>
+            <span className="nav-ico">⬚</span> Swagger
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
 
 export function AppShell() {
   return (
     <VesselProvider>
-      <div className="shell">
-        <aside className="sidebar">
-          <div className="brand">
+      <div className="appframe">
+        <header className="appbar">
+          <div className="appbar-brand">
             <div className="brand-mark">M</div>
-            <div>
-              <div className="brand-name">Mooring</div>
-              <div className="brand-sub">Line management</div>
-            </div>
+            <span className="brand-parent">MARANICS</span>
+            <span className="brand-div">|</span>
+            <span className="brand-name">Mooring</span>
           </div>
-          <nav>
+
+          <nav className="appbar-nav">
             {visibleNav().map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
                 end={n.to === "/"}
-                className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
+                title={n.label}
+                className={({ isActive }) => "topnav-link" + (isActive ? " active" : "")}
               >
                 <span className="nav-ico">{n.icon}</span>
                 <span className="label">{n.label}</span>
               </NavLink>
             ))}
           </nav>
-        </aside>
 
-        <div className="main">
-          <Topbar />
-          <main className="content">
-            <Outlet />
-          </main>
-        </div>
+          <div className="appbar-right">
+            <GlobalSearch />
+            <ConnBadge />
+            <span className={"scope-badge " + SCOPE}>{SCOPE.toUpperCase()}</span>
+            <VesselSwitcher />
+            <GridMenu />
+            <ThemeToggle />
+            <button type="button" className="icon-btn" aria-label="Notifications" title="Notifications (none)">
+              🔔
+            </button>
+            <span className="avatar" title="Crew">ML</span>
+          </div>
+        </header>
+
+        <main className="content">
+          <Outlet />
+        </main>
       </div>
     </VesselProvider>
   );

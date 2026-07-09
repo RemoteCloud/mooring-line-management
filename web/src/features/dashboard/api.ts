@@ -11,28 +11,28 @@ export interface OverTrendPoint {
 export interface OverAttentionItem {
   id: string;
   name: string;
-  serial_number: string;
-  condition_status: string;
-  location_label: string;
+  serialNumber: string;
+  conditionStatus: string;
+  locationLabel: string;
 }
 
 export interface OverRecentInspection {
-  line_name: string;
-  condition_status: string;
-  inspected_at: string;
+  lineName: string;
+  conditionStatus: string;
+  inspectedAt: string;
 }
 
 export interface Overview {
-  active_lines: number;
+  activeLines: number;
   spares: number;
   good: number;
   monitor: number;
   action: number;
-  needing_attention: number;
-  inspections_due: number;
-  avg_install_age_days: number;
+  needingAttention: number;
+  inspectionsDue: number;
+  avgInstallAgeDays: number;
   attention: OverAttentionItem[];
-  recent_inspections: OverRecentInspection[];
+  recentInspections: OverRecentInspection[];
   trend: OverTrendPoint[];
 }
 

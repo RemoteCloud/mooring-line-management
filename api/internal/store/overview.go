@@ -16,30 +16,30 @@ type OverTrendPoint struct {
 type OverAttentionItem struct {
 	ID              string `json:"id"`
 	Name            string `json:"name"`
-	SerialNumber    string `json:"serial_number"`
-	ConditionStatus string `json:"condition_status"`
-	LocationLabel   string `json:"location_label"`
+	SerialNumber    string `json:"serialNumber"`
+	ConditionStatus string `json:"conditionStatus"`
+	LocationLabel   string `json:"locationLabel"`
 }
 
 // OverRecentInspection is one of the most recent inspections for a vessel.
 type OverRecentInspection struct {
-	LineName        string    `json:"line_name"`
-	ConditionStatus string    `json:"condition_status"`
-	InspectedAt     time.Time `json:"inspected_at"`
+	LineName        string    `json:"lineName"`
+	ConditionStatus string    `json:"conditionStatus"`
+	InspectedAt     time.Time `json:"inspectedAt"`
 }
 
 // Overview is the dashboard payload for a vessel.
 type Overview struct {
-	ActiveLines       int                    `json:"active_lines"`
+	ActiveLines       int                    `json:"activeLines"`
 	Spares            int                    `json:"spares"`
 	Good              int                    `json:"good"`
 	Monitor           int                    `json:"monitor"`
 	Action            int                    `json:"action"`
-	NeedingAttention  int                    `json:"needing_attention"`
-	InspectionsDue    int                    `json:"inspections_due"`
-	AvgInstallAgeDays int                    `json:"avg_install_age_days"`
+	NeedingAttention  int                    `json:"needingAttention"`
+	InspectionsDue    int                    `json:"inspectionsDue"`
+	AvgInstallAgeDays int                    `json:"avgInstallAgeDays"`
 	Attention         []OverAttentionItem    `json:"attention"`
-	RecentInspections []OverRecentInspection `json:"recent_inspections"`
+	RecentInspections []OverRecentInspection `json:"recentInspections"`
 	Trend             []OverTrendPoint       `json:"trend"`
 }
 

@@ -1,138 +1,155 @@
-# Mooring Line Management — Implementation Plan
+# Plan: Deck rope-management + reachability, plus deck-map legibility
 
-**Stack:** Go backend (spec-first OpenAPI 3.1) · PostgreSQL · React/TS PWA · S3-compatible object storage.
-**Deployments:** one binary, two scopes (onboard single-vessel / shore fleet), set by config. Async outbox sync between them.
+_Locked via grill — by Claude + mattias_
 
----
+## Goal
 
-## 1. Stack & key libraries
+Make the deck map the operational hub the crew actually works from, not a read-only
+diagram. Standing at a winch, a crew member should manage the ropes on it: assign a
+spare to an empty drum, register a brand-new rope straight onto a drum, move a rope to
+another drum or to storage, turn a rope's side, and log a quick condition check — all
+from the winch panel without hunting through the register. Plus: enlarge the deck
+symbols so the map reads on a sunlit tablet, and expose the (already-built) catalogue to
+onboard crew. A grounding pass found that documents-upload, catalogue CRUD, inspection
+logging, and line registration are **already implemented**; the genuinely new work is the
+winch-panel action hub (#1) and the move hook it needs. The rest is surfacing and
+verification.
 
-| Concern | Choice | Why |
-|---|---|---|
-| API framework + contract | **Huma v2** (code-first) | Emits **OpenAPI 3.1.0** natively from Go handlers+structs; built-in validation from struct tags. **De-risk (2026-06-07): spec-first via oapi-codegen AND ogen both fail on 3.1 `type:[x,"null"]` nullability** — they model `type` as scalar string. Code-first goes Go→3.1 (not 3.1→Go), sidestepping the parser. Verified: Huma emits 3.1.0, openapi-typescript consumes it cleanly, nullability flows via `*T` pointers. |
-| Router | Huma `humago` adapter over stdlib `net/http` mux | Huma is router-agnostic; stdlib mux keeps deps light (chi available if richer routing needed) |
-| DB queries | `sqlc` | Type-safe Go from raw SQL; proper FK/constraint SQL stays explicit |
-| Migrations | `golang-migrate` | Versioned `.sql` up/down; no ad-hoc schema edits |
-| Validation | generated from OpenAPI + domain guards | Request shape from spec; business rules in domain layer |
-| Auth | JWT + RBAC middleware | 3 roles (§8) |
-| Object storage | `aws-sdk-go-v2` (S3) / MinIO local | Certs, manuals, photos; DB holds refs only |
-| Webhooks | outbox + dispatcher worker, HMAC-SHA256 | Signed, retryable |
-| Sync | outbox/event replication worker | Append-only ops; tolerant of long offline gaps |
-| Frontend client | `openapi-typescript` from Huma-emitted 3.1 spec | Shared types front↔back: Go structs → 3.1 spec → TS types. One source (the Go code), spec is the build artifact published as deliverable 2. |
-| Frontend | React + TS + Vite + PWA plugin + React Query | Per spec §2 |
-| PDF/CSV report | `maroto`/`gofpdf` (PDF), stdlib `encoding/csv`, `excelize` (XLSX) | IN-2 export |
+## Approach
 
----
+### A. Deck symbol enlarge (glare legibility) — `web/src/features/deck/symbols.tsx` + styles
+1. Scale the drawing constants up: `DRUM_W` 20→28, `DRUM_H` 30→42, `DRUM_GAP` 4→5,
+   `PAD` 8→11. Winch bodies and drums grow; the whole `<g>` is the tap target, so hit
+   areas grow past the 44px floor at tablet width.
+2. Bump label/marker type: `.sym-label` 11→14px, `.sym-drive` 10→13px, `StatusMark`
+   `r` 7→9. Counter-rotation math already handles labels; verify after scaling.
+3. Keep `viewBox` 1000×600 and the normalized 0..1 model untouched (edit-mode drag needs
+   the full deck). Do NOT crop/auto-fit, do NOT spread seed winches — empty deck is
+   physical truth (Principle 3).
 
-## 2. Repo layout (monorepo)
+### B0. Backend: robust drum identity + move safety (small) — `api/internal/store/lines.go`, `httpapi/lines.go`
+4. Add `current_drum_id` and `current_storage_id` to the **list-lines** row payload
+   (`LineRow`) so the frontend matches ropes to drums by **id**, not by parsing
+   `location_label` (Codex #4 — label matching breaks on collisions/renames). Regenerate
+   `web/src/api/schema.ts` via `make gen-ts`.
+5. Harden `MoveLine` request validation (Codex round-2):
+   - **Exactly-one destination (XOR):** reject both-empty (today silently clears location)
+     and both-set (today hits the CHECK and 500s). Extract a **pure** func
+     `validateMoveRequest(toDrumID, toStorageID) error` → new sentinel
+     `store.ErrInvalidMoveTarget`. Pure = unit-testable with no DB (the repo has only
+     domain unit tests, no DB harness — so don't promise an integration test).
+   - **Same-vessel:** enforce in the `MoveLine` UPDATE itself — the target drum/storage must
+     belong to the line's vessel (add `AND <target>.vessel_id = line.vessel_id` to the
+     resolve, or check the looked-up target vessel); zero match → `ErrInvalidMoveTarget`.
+     Onboard is single-vessel so this is unreachable there; it guards shore.
+   - **Error mapping:** add `errors.Is(err, store.ErrInvalidMoveTarget) →
+     huma.Error422UnprocessableEntity` in `mapErr` (today it falls through to 500 — Codex #2).
+   - Tests: unit-test the pure `validateMoveRequest` (XOR cases). Cover same-vessel +
+     occupied-drum (409) via the manual Docker e2e, not a new Go DB harness.
 
-```
-mooring-line-management/
-├── api/
-│   ├── cmd/server/main.go           # boots HTTP + workers, reads SCOPE/VESSEL_ID
-│   ├── internal/
-│   │   ├── config/                  # SCOPE=onboard|shore, VESSEL_ID, DB, S3, JWT
-│   │   ├── domain/                  # entities + rules: turning, side accrual, due calcs
-│   │   ├── store/                   # sqlc gen + repo wrappers, tx helpers
-│   │   ├── httpapi/                 # Huma handlers (input/output structs + Register fns)
-│   │   ├── auth/                    # JWT issue/verify, RBAC middleware, scope guard
-│   │   ├── storage/                 # S3 client (put/get/presign)
-│   │   ├── webhook/                 # subscriptions, HMAC sign, dispatcher
-│   │   ├── sync/                    # outbox writer, push/pull worker, conflict rule
-│   │   └── report/                  # condition report PDF/CSV/XLSX
-│   ├── db/
-│   │   ├── migrations/              # NNNN_*.up.sql / .down.sql
-│   │   └── queries/                 # *.sql for sqlc
-│   ├── openapi/openapi.json         # BUILD ARTIFACT: 3.1 spec emitted from Go (deliverable 2)
-│   └── seed/                        # Norwegian Luna seed (~18 lines + spares)
-├── web/
-│   ├── src/
-│   │   ├── api/                     # openapi-typescript types (from api/openapi/openapi.json) + React Query hooks
-│   │   ├── app/                     # router, layout, scope-aware nav (vessel switcher on shore)
-│   │   ├── features/
-│   │   │   ├── dashboard/           # OV-1..3 donut, tiles, attention, trend, feed
-│   │   │   ├── deck/                # DK-1..4 deck map, edit layout, drums, rotation
-│   │   │   ├── register/            # RP-1..3 table, rope record tabs, add/Ordered
-│   │   │   ├── sides/               # TN-1..2 side A/B, turn, due flag
-│   │   │   ├── inspections/         # IN-1..3 log form, report, logbook
-│   │   │   ├── files/               # IM-1..3 photos timeline, certs/manuals
-│   │   │   └── catalogue/           # makers/types/products (shore admin)
-│   │   └── lib/                     # search, formatting, offline cache config
-│   └── vite.config.ts               # PWA, VITE_SCOPE build flag
-├── deploy/
-│   ├── docker-compose.onboard.yml   # api(scope=onboard) + postgres + minio
-│   ├── docker-compose.shore.yml     # api(scope=shore) + postgres + minio
-│   └── Dockerfile
-└── README.md
-```
+### B. Winch-panel rope management hub (NEW — the core) — `web/src/features/deck/`
+View mode only (edit mode stays layout-only). When a winch is selected, render a
+**drum-aware** panel instead of the flat rope list:
+6. Build the drum list from `layout.winch.drums` (each has `id`, `idx`, `line_count`) and
+   match ropes to drums by `current_drum_id` (from B0), not by label. Render one row per
+   drum, in `idx` order.
+7. **Occupied drum** (rope present): rope name + status mark; actions inline:
+   - **Turn** → extract a headless `useTurnLine` / compact button from `TurnButton`, which
+     today renders a full `.card` (Codex #6 — reusing it as-is nests cards, an impeccable
+     ban). Compact variant only inside the panel; record page keeps the card.
+   - **Move** → target picker built strictly from the **current vessel's** layout (other
+     drums this station + storage) → `POST /lines/{id}/move` via new `useMoveLine` hook.
+   - **Log inspection** → reuse `LogInspectionDialog`, but the deck caller must also
+     invalidate `["lines"]` and `["layout"]` (the existing `useLogInspection` invalidates
+     only inspections + the single line — Codex #7 — so deck dots/rows would go stale).
+   - Rope name still links to the full record.
+8. **Empty drum**: two affordances:
+   - **Assign rope** → picker of **assignable** lines, defined precisely as:
+     `current_drum_id == null AND ( lifecycle_status == 'spare' OR (lifecycle_status ==
+     'active' AND current_storage_id != null) )`, current vessel only. I.e. a spare, or an
+     active rope currently in storage being redeployed. Excludes off-drum sweep of
+     ordered/off-vessel (Codex r1 #1), active-but-nowhere anomalies (r2 #4), **and
+     retired-in-storage** (r3 #2 — retired must never return to a drum). Then `move` onto
+     `drum.id`.
+   - **Register here** → open `AddLineDialog` (extended with optional target `drumId`),
+     creating the line as **`spare`** (not active); on success chain `move(newLineId,
+     drumId)`. If the move fails, the line persists as a valid spare (not a broken
+     half-placed active line — Codex #2); surface the error with retry + a link to the new
+     record. Register-line has no drum field, so placement is always register→move.
+9. Storage panel keeps its rope list; add the same Move/Turn/Inspect row actions for ropes
+   in storage (move target includes drums).
+10. `useMoveLine` **normalizes all non-2xx errors** into `{status, message}` and shows a
+    generic inline failure; 409 (occupied) gets a specific message. Not just 409 (Codex
+    #5 — move can also 400/404/422/FK).
 
----
+### C. Catalogue reachable onboard — `web/src/app/router.tsx` + nav
+11. Remove the shore-only `Navigate` guard on `/catalogue`; add the nav link for onboard.
+    CataloguePage already does makers + line-types (list-only; leave as display) + products
+    create. **Decision (per user): onboard is writable** — crew can add vendors/models on
+    deck. Honest risk statement: the API has **no authentication at all today** — only
+    `ScopeMiddleware` (vessel scoping, not auth); `JWTSecret` is loaded but unenforced. So
+    "anyone with network access to the onboard API can `POST /makers`/`/products`." This is
+    **not new exposure** — register/move/turn/inspect are already unauthenticated writes on
+    the same trusted-network onboard deployment; catalogue is no different. Real auth + a
+    catalogue write scope guard are a separate, app-wide future hardening, explicitly out of
+    this pass.
 
-## 3. Onboard vs shore (one codebase)
+### D. Verify already-built (little/no code) — confirm in Docker
+12. Smoke-test in the running onboard + shore stacks: FilesTab upload (photo + cert +
+    document → MinIO), CataloguePage create maker/product, LogInspectionDialog from a
+    record, AddLineDialog register. Fix only what's broken. Surface to user that #2/#3/#4
+    were already implemented.
 
-- Single binary. `SCOPE=onboard` requires `VESSEL_ID`; `SCOPE=shore` serves all vessels.
-- **Scope guard middleware:** onboard injects `vessel_id = $VESSEL_ID` into every query path and rejects cross-vessel access; shore reads `vessel_id` from request/switcher.
-- Every row carries `vessel_id` + `origin` marker → same schema serves both (onboard holds 1 vessel, shore holds all).
-- Frontend: `VITE_SCOPE` toggles vessel switcher (XC-1) and fleet views.
+### Verification
+- `go build ./...` + `go test ./...` clean — backend **is** touched now (B0: list-row drum
+  ids + move XOR/same-vessel validation + `ErrInvalidMoveTarget` mapping). New Go test is the
+  **pure** `validateMoveRequest` (no DB); same-vessel/409 covered by Docker e2e.
+- `tsc -b` + `npm run build` clean; `make gen-ts` regenerates `schema.ts` cleanly.
+- Headless-Chrome screenshots of `/deck` (enlarged symbols, winch panel actions),
+  `/catalogue` reachable onboard. Grayscale check unaffected (marker shapes unchanged).
+- Manual e2e against Docker: assign spare → drum, register-here, move, turn, inspect;
+  each reflects after refetch. Move to occupied drum → 409 surfaced.
 
-### Sync (outbox/event replication — preferred per spec)
-- `outbox` table: every operational mutation appends a domain event (id, vessel_id, type, payload, created_at, origin).
-- **Onboard → shore:** on reconnect, sync worker POSTs unsent operational events to shore `/sync/ingest`; shore applies idempotently (dedupe on event id). Onboard authoritative for ops.
-- **Shore → onboard:** shore has its own master-data outbox (catalogue, vessel setup); onboard pulls and applies. Shore authoritative for master.
-- Conflict-free by partition: ops are append-only + vessel-owned (onboard wins); master is shore-owned (shore wins).
-- Neither side blocks on the other; tolerant of long gaps (cursor/watermark per peer).
-- **`app_user` placement:** users are **shore-owned master data** (authored centrally, pushed down) so RBAC is consistent fleet-wide and shore wins on conflict. BUT rows must replicate to onboard so crew can authenticate while disconnected at sea (hard constraint §2a). Onboard treats users read-mostly (local password/token cache works offline); user *creation/role changes* happen on shore and sync down. Onboard-side emergency user provisioning = open Q if NCL needs it.
+## Key decisions & tradeoffs
 
----
+- **Enlarge by scaling symbol geometry, not cropping the canvas.** Deterministic, grows
+  hit targets, preserves the full 0..1 deck for dragging. Rejected auto-fit viewBox (breaks
+  edit-mode drag, shifts as symbols move) and seed re-placement (masks real layout).
+- **Empty lower deck left as-is** — physical truth (Principle 3); the sparseness was tiny
+  symbols, not the empty area.
+- **Reuse over rebuild.** Turn, inspection, register, file upload, catalogue all exist;
+  the winch panel composes them rather than reimplementing. Only new primitive is
+  `useMoveLine` + the drum-aware panel + an optional `drumId` on AddLineDialog.
+- **Register-on-drum is two-step (register then move)**, and the new line is created as a
+  **spare** so a failed move leaves a valid spare, never a broken half-placed active line.
+- **Drum↔rope matching by id**, via new `current_drum_id`/`current_storage_id` on the list
+  row (small backend add) — chosen over the original `location_label` string parse, which
+  breaks on label collisions/renames.
+- **Catalogue exposed onboard** per user; line-type creation stays absent (no backend
+  POST) — only view + makers/products create.
+- **All rope actions are view-mode**, edit mode remains pure layout editing — avoids
+  mixing destructive layout edits with operational rope moves.
 
-## 4. Data model → migrations (FK/constraint highlights)
+## Risks / open questions
 
-Tables: `maker, line_type, product, vessel, mooring_station, winch_location, storage_location, drum, mooring_line, line_component(via mooring_line.parent_line_id), certificate, inspection, condition_photo, turn_event, document, webhook_subscription, outbox, app_user`.
+- **Stale layout after move/register/inspect.** All three change drum occupancy and/or
+  worst-status; every such mutation must invalidate **both** `["lines"]` and `["layout"]`
+  so deck dots + panel update. (The existing inspection hook does not — fixed in step 7.)
+- **Tap-target after scaling** — verify the *measured* rendered size ≥44px at the tablet
+  breakpoint, not just the viewBox units (advisor's standing note: assert, don't assume).
+- **Catalogue write authority onboard** — accepted per user; makers/products POST have no
+  server scope guard. Documented as accepted master-data risk, future hardening if needed.
+- **`AddLineDialog` refactor blast radius** — adding optional `drumId` + spare-default must
+  not regress the existing register-page flow; keep the default path identical.
 
-**Primary keys (decide before first migration):** every synced table uses **UUID v7** PKs, generated at insert on whichever side creates the row. Required by the sync model — onboard generates rows offline and pushes to shore where all vessels coexist; `bigserial` would collide (vessel A `id=1` vs vessel B `id=1`) at shore aggregation. v7 keeps index locality. `origin` marker + `vessel_id` on every row.
+## Out of scope
 
-Key constraints (spec §7):
-- `serial_number` uniqueness scope = **fleet-wide** (pending NCL confirm). Note the deployment split: a Postgres `UNIQUE` index enforces only **vessel-wide** onboard (it can't see other vessels). Fleet-wide is a **shore-side validation + sync-conflict check**, not a single column constraint meaning the same thing in both deployments. Onboard keeps the vessel-wide UNIQUE; shore adds the global check.
-- A line in exactly one location: `current_location_id` + partial logic; **one line per drum** → UNIQUE on `(drum_id)` where occupied (partial unique index).
-- Turning only when `can_be_turned` → enforced in domain layer + check on turn endpoint.
-- Computed never stored: `total_days_in_service`, side accruals derived in queries.
-- `inspection.external_id` UNIQUE per integration → idempotent ingest.
-- Side accrual model: store `side_x_accumulated_age_days` (frozen) + `side_x_change_date`; live age = accumulated + (active ? now − change_date : 0). Turn freezes inactive, stamps new active.
-- FKs everywhere; `ON DELETE RESTRICT` for catalogue refs, cascade for child photos/components where safe.
-- JSONB only for: vessel `layout config` extras, webhook event filters.
-
----
-
-## 5. Build sequence (vertical slices, API then matching UI)
-
-0. **Foundations** — ✅ codegen de-risk DONE: oapi-codegen + ogen fail on 3.1 nullability; **Huma code-first chosen** (emits 3.1.0, openapi-typescript consumes it). Remaining: repo init, docker-compose (pg+minio), config (SCOPE/VESSEL_ID), golang-migrate tooling, Huma server skeleton + `openapi.json` emit + TS-gen pipeline, auth scaffold, scope guard, health.
-1. **Catalogue** (§4.0, shore-owned) — makers, line_types, products, product manual upload. Simplest, master data.
-2. **Vessel + layout** (DK-1..4) — stations, winch/storage CRUD, drums 1–6, rotation presets, x/y coords. Needed before lines.
-3. **Lines + components + registration + move** (RP-1..3, §4.2/4.3, P0 incl. drum DK-3) — register from product, components→parent, lifecycle incl. Ordered, move winch↔storage with one-line-per-drum guard.
-4. **Turning & side tracking** (TN-1..2) — turn endpoint, TurnEvent, accruals, due flag.
-5. **Inspections** (IN-1..3) — manual log + `/inspections/ingest` idempotent + logbook. Drives current_condition_status + trend.
-6. **Photos & files** (IM-1..3) — S3 upload, condition photo timeline (date/side), certs (per line) vs manuals (per product) separated.
-7. **Dashboard + reports + search** (OV-1..3, IN-2, XC-3) — overview aggregate endpoint, condition report PDF/CSV/XLSX worst-first, global search.
-8. **Webhooks** — subscriptions + HMAC dispatcher for the 4 event types.
-9. **Sync** — outbox + onboard↔shore replication workers + conflict rule.
-10. **Seed** — Norwegian Luna ~18 active + spares; runnable both modes.
-11. **Cross-cutting UX + PWA** (XC-1/2, §6) — vessel switcher (shore), responsive/tablet, offline read cache + service worker, fallback manual inspection form.
-
-Frontend tracks each slice; React Query hooks generated from spec.
-
----
-
-## 6. Open questions to confirm with NCL (block exact contracts, not start)
-- 3rd-party inspection tool: push or pull? photos inline or URL? line id = our serial or their external id? runs onboard/shore/both? → fixes `/inspections/ingest` contract (build flexible: accept serial OR external_id, photos as refs OR base64).
-- Condition scale: assume Good/Monitor/Action (enum, mappable later).
-- Serial uniqueness: assume fleet-wide (easy to relax to per-vessel).
-- Connectivity/offline-gap profile → sync watermark tuning.
-- Auth source: standalone users v1, SSO later (keep auth boundary clean).
-- AMOS integration: later (P2) — keep integration boundary clean.
-
----
-
-## 7. Deliverables mapping (§11)
-1 schema+migrations → §4 · 2 API+OpenAPI+webhooks+upload → §2,8 · 3 PWA all P0 → §5.1-11 · 4 ingest+report export → §5.5,7 · 5 sync → §5.9 · 6 seed → §5.10 · 7 README → final.
-```
-```
+- Backend changes are limited to B0: list-row drum ids; move XOR + same-vessel validation
+  with `ErrInvalidMoveTarget`→422 mapping. The **only new Go test is the pure
+  `validateMoveRequest` (XOR)** — no same-vessel/DB Go test (covered by Docker e2e). No new
+  endpoints; move/turn/inspect/register/files/catalogue all exist.
+- No server-side scope guard on catalogue writes (noted accepted risk above).
+- No line-type creation UI (no backend endpoint).
+- No deck hull/proportion redesign, no bollards/fairleads, no canvas cropping.
+- No new inspection ingestion / third-party sync work.
+- Not re-reviewing already-shipped FilesTab/Catalogue/Inspection code beyond a smoke test.

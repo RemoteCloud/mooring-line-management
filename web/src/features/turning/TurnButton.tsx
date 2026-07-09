@@ -2,9 +2,9 @@ import { useTurnLine } from "./useTurnLine";
 
 type TurnableLine = {
   id: string;
-  can_be_turned: boolean;
-  current_side?: string;
-  current_condition_status?: string;
+  canBeTurned: boolean;
+  currentSide?: string;
+  currentConditionStatus?: string;
 };
 
 // TurnButton flips a line to its other side. Disabled unless the line is
@@ -13,9 +13,9 @@ export function TurnButton({ line }: { line: TurnableLine }) {
   const turn = useTurnLine(line.id);
 
   const disabled =
-    !line.can_be_turned ||
-    line.current_side === "n/a" ||
-    !line.current_side;
+    !line.canBeTurned ||
+    line.currentSide === "n/a" ||
+    !line.currentSide;
 
   function onClick() {
     if (turn.isPending) return;

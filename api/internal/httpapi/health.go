@@ -11,7 +11,7 @@ type HealthOutput struct {
 	Body struct {
 		Status   string `json:"status" example:"ok" doc:"Liveness status"`
 		Scope    string `json:"scope" example:"onboard" doc:"Deployment scope"`
-		VesselID string `json:"vessel_id,omitempty" doc:"Configured vessel (onboard only)"`
+		VesselID string `json:"vesselId,omitempty" doc:"Configured vessel (onboard only)"`
 		DB       string `json:"db" example:"ok" doc:"Database connectivity"`
 	}
 }

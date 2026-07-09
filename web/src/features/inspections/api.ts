@@ -5,27 +5,27 @@ import { API_BASE } from "../../config";
 
 export interface Inspection {
   id: string;
-  line_id: string;
-  vessel_id: string;
-  inspected_at: string;
-  inspected_by?: string;
+  lineId: string;
+  vesselId: string;
+  inspectedAt: string;
+  inspectedBy?: string;
   source: string;
-  external_id?: string;
-  condition_status: string;
+  externalId?: string;
+  conditionStatus: string;
   notes?: string;
-  created_at: string;
+  createdAt: string;
 }
 
 export interface InspLogbookEntry extends Inspection {
-  line_name: string;
-  serial_number: string;
+  lineName: string;
+  serialNumber: string;
 }
 
 export interface LogInspectionInput {
-  condition_status: string;
-  inspected_by?: string;
+  conditionStatus: string;
+  inspectedBy?: string;
   notes?: string;
-  inspected_at?: string;
+  inspectedAt?: string;
 }
 
 async function getJSON<T>(url: string): Promise<T> {
@@ -57,6 +57,9 @@ export function useLogInspection(lineId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inspections", lineId] });
       qc.invalidateQueries({ queryKey: ["line", lineId] });
+      // a new condition changes the register row status and the deck worst-status
+      qc.invalidateQueries({ queryKey: ["lines"] });
+      qc.invalidateQueries({ queryKey: ["layout"] });
     },
   });
 }
@@ -65,6 +68,6 @@ export function useLogbook(vesselId: string | undefined) {
   return useQuery({
     enabled: !!vesselId,
     queryKey: ["logbook", vesselId],
-    queryFn: () => getJSON<InspLogbookEntry[]>(`${API_BASE}/inspections/logbook?vessel_id=${vesselId}`),
+    queryFn: () => getJSON<InspLogbookEntry[]>(`${API_BASE}/inspections/logbook?vesselId=${vesselId}`),
   });
 }

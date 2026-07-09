@@ -82,9 +82,23 @@ func run(log *slog.Logger) error {
 	}
 	if st != nil {
 		defer st.Close()
+		// Basic API-key auth: ensure an admin credential exists so the operator isn't locked out.
+		if plain, err := st.EnsureBootstrapAdmin(ctx, cfg.AdminBootstrapKey); err != nil {
+			log.Warn("bootstrap admin failed", "err", err)
+		} else if plain != "" {
+			log.Warn("generated bootstrap admin API key — store it now; shown once", "api_key", plain)
+		} else {
+			log.Info("bootstrap admin ready")
+		}
+		// Outbound webhook dispatcher: polls the outbox and delivers to subscriptions.
+		go st.RunWebhookDispatcher(ctx, log)
 	}
 
 	handler, _ := httpapi.NewAPI(&httpapi.Server{Cfg: cfg, Store: st})
+	// Single-container deploy: also serve the built web bundle from WEB_DIR.
+	if cfg.WebDir != "" {
+		handler = httpapi.WithStaticSPA(handler, cfg.WebDir)
+	}
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

@@ -85,21 +85,22 @@ func Run(ctx context.Context, pool *pgxpool.Pool, reset bool) error {
 		x, y        float64
 		orientation int
 		drums       int
+		drive       string
 	}
 	winches := []winchDef{
-		{"FWD-1", "fwd", 0.22, 0.40, -45, 3},
-		{"FWD-2", "fwd", 0.50, 0.26, 0, 3},
-		{"FWD-3", "fwd", 0.78, 0.40, 45, 3},
-		{"AFT-1", "aft", 0.22, 0.62, 45, 3},
-		{"AFT-2", "aft", 0.50, 0.74, 0, 3},
-		{"AFT-3", "aft", 0.78, 0.62, -45, 3},
+		{"FWD-1", "fwd", 0.22, 0.40, -45, 3, "electric"},
+		{"FWD-2", "fwd", 0.50, 0.26, 0, 3, "hydraulic"},
+		{"FWD-3", "fwd", 0.78, 0.40, 45, 3, "electric"},
+		{"AFT-1", "aft", 0.22, 0.62, 45, 3, "hydraulic"},
+		{"AFT-2", "aft", 0.50, 0.74, 0, 3, "electric"},
+		{"AFT-3", "aft", 0.78, 0.62, -45, 3, "hydraulic"},
 	}
 	var drumIDs []string // flattened, in winch order
 	for _, w := range winches {
 		wid := id()
 		exec(ctx, tx, &err, `INSERT INTO winch_location
-			(id,vessel_id,label,station,x,y,orientation,drum_count) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-			wid, LunaVesselID, w.label, w.station, w.x, w.y, w.orientation, w.drums)
+			(id,vessel_id,label,station,x,y,orientation,drum_count,drive_type) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+			wid, LunaVesselID, w.label, w.station, w.x, w.y, w.orientation, w.drums, w.drive)
 		for i := 1; i <= w.drums; i++ {
 			did := id()
 			exec(ctx, tx, &err, `INSERT INTO drum (id,winch_id,idx) VALUES ($1,$2,$3)`, did, wid, i)

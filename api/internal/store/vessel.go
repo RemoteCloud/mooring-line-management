@@ -52,7 +52,7 @@ func (s *Store) GetLayout(ctx context.Context, vesselID string) (Layout, error) 
 
 	// winches
 	wr, err := s.Pool.Query(ctx, `
-SELECT id, label, station, x, y, orientation, drum_count
+SELECT id, label, station, x, y, orientation, drum_count, drive_type, label_auto, swl, break_load
 FROM winch_location WHERE vessel_id=$1 ORDER BY station, label`, vesselID)
 	if err != nil {
 		return out, err
@@ -60,7 +60,7 @@ FROM winch_location WHERE vessel_id=$1 ORDER BY station, label`, vesselID)
 	winchByID := map[string]*Winch{}
 	for wr.Next() {
 		var w Winch
-		if err := wr.Scan(&w.ID, &w.Label, &w.Station, &w.X, &w.Y, &w.Orientation, &w.DrumCount); err != nil {
+		if err := wr.Scan(&w.ID, &w.Label, &w.Station, &w.X, &w.Y, &w.Orientation, &w.DrumCount, &w.DriveType, &w.LabelAuto, &w.SWL, &w.BreakLoad); err != nil {
 			wr.Close()
 			return out, err
 		}
@@ -95,16 +95,17 @@ WHERE w.vessel_id=$1 ORDER BY d.idx`, vesselID)
 	}
 	dr.Close()
 
-	// storage
+	// storage (on-map ordered first, then off-map text areas — both by label)
 	sr, err := s.Pool.Query(ctx, `
-SELECT id, label, station, x, y FROM storage_location WHERE vessel_id=$1 ORDER BY station, label`, vesselID)
+SELECT id, label, COALESCE(station,''), on_map, x, y FROM storage_location
+WHERE vessel_id=$1 ORDER BY on_map DESC, station, label`, vesselID)
 	if err != nil {
 		return out, err
 	}
 	storageByID := map[string]*Storage{}
 	for sr.Next() {
 		var st Storage
-		if err := sr.Scan(&st.ID, &st.Label, &st.Station, &st.X, &st.Y); err != nil {
+		if err := sr.Scan(&st.ID, &st.Label, &st.Station, &st.OnMap, &st.X, &st.Y); err != nil {
 			sr.Close()
 			return out, err
 		}
@@ -165,12 +166,17 @@ type WinchInput struct {
 	X, Y        float64
 	Orientation int
 	DrumCount   int
+	DriveType   string
+	LabelAuto   bool
+	SWL         *float64
+	BreakLoad   *float64
 }
 
 type StorageInput struct {
 	ID      string
 	Label   string
-	Station string
+	Station string // "" for off-map areas (stored as NULL)
+	OnMap   bool
 	X, Y    float64
 }
 
@@ -191,20 +197,23 @@ func (s *Store) SaveLayout(ctx context.Context, vesselID string, in SaveLayoutIn
 
 	keepWinch := map[string]bool{}
 	for _, w := range in.Winches {
+		if w.DriveType == "" {
+			w.DriveType = "electric"
+		}
 		id := w.ID
 		if id == "" {
 			id = newID()
 			if _, err := tx.Exec(ctx, `
-INSERT INTO winch_location (id, vessel_id, label, station, x, y, orientation, drum_count)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-				id, vesselID, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount); err != nil {
+INSERT INTO winch_location (id, vessel_id, label, station, x, y, orientation, drum_count, drive_type, label_auto, swl, break_load)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+				id, vesselID, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, w.DriveType, w.LabelAuto, w.SWL, w.BreakLoad); err != nil {
 				return err
 			}
 		} else {
 			if _, err := tx.Exec(ctx, `
-UPDATE winch_location SET label=$2, station=$3, x=$4, y=$5, orientation=$6, drum_count=$7
-WHERE id=$1 AND vessel_id=$8`,
-				id, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, vesselID); err != nil {
+UPDATE winch_location SET label=$2, station=$3, x=$4, y=$5, orientation=$6, drum_count=$7, drive_type=$8, label_auto=$9, swl=$11, break_load=$12
+WHERE id=$1 AND vessel_id=$10`,
+				id, w.Label, w.Station, w.X, w.Y, w.Orientation, w.DrumCount, w.DriveType, w.LabelAuto, vesselID, w.SWL, w.BreakLoad); err != nil {
 				return err
 			}
 		}
@@ -244,14 +253,14 @@ SELECT EXISTS(SELECT 1 FROM mooring_line ml JOIN drum d ON d.id=ml.current_drum_
 		if id == "" {
 			id = newID()
 			if _, err := tx.Exec(ctx, `
-INSERT INTO storage_location (id, vessel_id, label, station, x, y) VALUES ($1,$2,$3,$4,$5,$6)`,
-				id, vesselID, st.Label, st.Station, st.X, st.Y); err != nil {
+INSERT INTO storage_location (id, vessel_id, label, station, on_map, x, y) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+				id, vesselID, st.Label, nullStr(st.Station), st.OnMap, st.X, st.Y); err != nil {
 				return err
 			}
 		} else {
 			if _, err := tx.Exec(ctx, `
-UPDATE storage_location SET label=$2, station=$3, x=$4, y=$5 WHERE id=$1 AND vessel_id=$6`,
-				id, st.Label, st.Station, st.X, st.Y, vesselID); err != nil {
+UPDATE storage_location SET label=$2, station=$3, on_map=$4, x=$5, y=$6 WHERE id=$1 AND vessel_id=$7`,
+				id, st.Label, nullStr(st.Station), st.OnMap, st.X, st.Y, vesselID); err != nil {
 				return err
 			}
 		}
@@ -278,7 +287,7 @@ UPDATE storage_location SET label=$2, station=$3, x=$4, y=$5 WHERE id=$1 AND ves
 		}
 	}
 
-	if err := writeOutbox(ctx, tx, vesselID, "layout", vesselID, "layout.updated", map[string]any{"vessel_id": vesselID}); err != nil {
+	if err := writeOutbox(ctx, tx, vesselID, "layout", vesselID, "layout.updated", map[string]any{"vesselId": vesselID}); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
